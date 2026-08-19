@@ -55,8 +55,12 @@ export class LightManager {
     started: false,
     scanning: false,
     selected: [],
+    discovered: [],
     lastWrite: '',
   };
+
+  // Every BLE name seen while scanning (for the Nearby-lights picker).
+  private discovered = new Set<string>();
 
   // Per-device write method, chosen from the characteristic's actual properties.
   private writeMode = new Map<string, 'withoutResponse' | 'withResponse'>();
@@ -80,6 +84,7 @@ export class LightManager {
       started: this.started,
       scanning: this.scanning,
       selected: [...this.selected],
+      discovered: [...this.discovered].sort(),
       lastWrite: this.lastWrite,
     };
     this.listeners.forEach((cb) => cb());
@@ -185,11 +190,18 @@ export class LightManager {
   // ---------------------------------------------------------------- scanning
   private ensureScanning() {
     if (!this.ble || this.bt !== 'PoweredOn' || this.scanning) return;
-    const missing = [...this.byName.values()].some(
-      (d) => d.state !== 'connected' && d.state !== 'connecting'
-    );
-    if (!missing) return;
+    if (!this.hasMissing()) return;
+    this.beginScan();
+  }
 
+  /** Force a discovery sweep even if nothing is missing (Nearby-lights picker). */
+  scanNow() {
+    if (!this.ble || this.bt !== 'PoweredOn' || this.scanning) return;
+    this.beginScan();
+  }
+
+  private beginScan() {
+    if (!this.ble) return;
     this.scanning = true;
     this.emit();
     try {
@@ -202,9 +214,13 @@ export class LightManager {
         if (!device) return;
         const advertised = device.name ?? device.localName ?? undefined;
         if (!advertised) return;
+        // Record every name we see so the user can pick real broadcast names.
+        if (!this.discovered.has(advertised)) {
+          this.discovered.add(advertised);
+          this.emit();
+        }
         const entry = this.byName.get(advertised);
-        if (!entry) return;
-        if (entry.state === 'idle' || entry.state === 'error' || entry.state === 'reconnecting') {
+        if (entry && (entry.state === 'idle' || entry.state === 'error' || entry.state === 'reconnecting')) {
           void this.connect(entry, device);
         }
         if (!this.hasMissing()) this.stopScan();

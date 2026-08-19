@@ -44,6 +44,8 @@ export interface Snapshot {
   scanning: boolean;
   /** Names the master controls target. Empty array means "all devices". */
   selected: string[];
+  /** Every BLE name seen while scanning — for the "Nearby lights" picker. */
+  discovered: string[];
   /** Human-readable result of the last command fan-out (for the debug line). */
   lastWrite: string;
 }
