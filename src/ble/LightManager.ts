@@ -6,7 +6,13 @@ import {
   bytesToBase64,
   type RGB,
 } from '../protocol';
-import type { BtState, DeviceEntry, Snapshot } from './types';
+import {
+  DEFAULT_LIGHT_STATE,
+  type BtState,
+  type DeviceEntry,
+  type LightState,
+  type Snapshot,
+} from './types';
 
 const SCAN_WINDOW_MS = 12_000; // how long a single scan sweep runs
 const RESCAN_IDLE_MS = 4_000; // pause between sweeps while devices are missing
@@ -48,12 +54,16 @@ export class LightManager {
     bt: 'Unknown',
     started: false,
     scanning: false,
+    selected: [],
     lastWrite: '',
   };
 
   // Per-device write method, chosen from the characteristic's actual properties.
   private writeMode = new Map<string, 'withoutResponse' | 'withResponse'>();
   private lastWrite = '';
+
+  // Which strips the master controls target. Empty => all devices.
+  private selected = new Set<string>();
 
   // ---------------------------------------------------------------- store API
   subscribe = (cb: () => void): (() => void) => {
@@ -69,6 +79,7 @@ export class LightManager {
       bt: this.bt,
       started: this.started,
       scanning: this.scanning,
+      selected: [...this.selected],
       lastWrite: this.lastWrite,
     };
     this.listeners.forEach((cb) => cb());
@@ -82,10 +93,10 @@ export class LightManager {
     for (const name of wanted) {
       if (!this.byName.has(name)) {
         this.byName.set(name, {
+          ...DEFAULT_LIGHT_STATE,
+          color: { ...DEFAULT_LIGHT_STATE.color },
           name,
           state: 'idle',
-          power: true,
-          color: { r: 255, g: 255, b: 255 },
           retry: 0,
         });
       }
@@ -95,6 +106,7 @@ export class LightManager {
       if (!wanted.has(name)) {
         this.teardownDevice(name);
         this.byName.delete(name);
+        this.selected.delete(name);
       }
     }
     this.emit();
@@ -105,10 +117,10 @@ export class LightManager {
     const n = name.trim();
     if (!n || this.byName.has(n)) return;
     this.byName.set(n, {
+      ...DEFAULT_LIGHT_STATE,
+      color: { ...DEFAULT_LIGHT_STATE.color },
       name: n,
       state: 'idle',
-      power: true,
-      color: { r: 255, g: 255, b: 255 },
       retry: 0,
     });
     this.emit();
@@ -119,6 +131,26 @@ export class LightManager {
     if (!this.byName.has(name)) return;
     this.teardownDevice(name);
     this.byName.delete(name);
+    this.selected.delete(name);
+    this.emit();
+  }
+
+  // ------------------------------------------------------------ selection
+  /** Toggle whether a strip is in the master-control selection. */
+  toggleSelect(name: string) {
+    if (this.selected.has(name)) this.selected.delete(name);
+    else this.selected.add(name);
+    this.emit();
+  }
+
+  /** Clear the selection -> master controls target ALL strips. */
+  selectAll() {
+    this.selected.clear();
+    this.emit();
+  }
+
+  selectOnly(names: string[]) {
+    this.selected = new Set(names.filter((n) => this.byName.has(n)));
     this.emit();
   }
 
@@ -389,9 +421,15 @@ export class LightManager {
     return [...this.byName.values()].filter((d) => d.state === 'connected');
   }
 
-  /** Fan a single frame out to every connected device, never sequentially. */
-  private async broadcast(bytes: Uint8Array): Promise<void> {
-    const targets = this.connectedDevices();
+  /** Connected strips the master controls target (empty selection => all). */
+  private targets(): DeviceEntry[] {
+    const connected = this.connectedDevices();
+    if (this.selected.size === 0) return connected;
+    return connected.filter((d) => this.selected.has(d.name));
+  }
+
+  /** Fan one frame out to the given strips in parallel; record the result. */
+  private async sendTo(targets: DeviceEntry[], bytes: Uint8Array): Promise<void> {
     const results = await Promise.allSettled(targets.map((t) => this.writeTo(t, bytes)));
     const ok = results.filter((r) => r.status === 'fulfilled').length;
     const fail = results.length - ok;
@@ -400,44 +438,64 @@ export class LightManager {
       | undefined;
     this.lastWrite =
       results.length === 0
-        ? 'no devices connected'
+        ? 'no strips targeted'
         : `sent ✓${ok}${fail ? ` ✗${fail}: ${errMsg(firstErr?.reason)}` : ''}`;
     this.emit();
   }
 
-  // Master controls (optimistically update UI state, then fan out).
+  // ---- Master controls: apply to the current selection (or all strips). ----
   async masterPower(on: boolean) {
-    for (const d of this.byName.values()) d.power = on;
+    const t = this.targets();
+    t.forEach((d) => (d.power = on));
     this.emit();
-    await this.broadcast(SP110E.power(on));
+    await this.sendTo(t, SP110E.power(on));
   }
 
   async masterColor(color: RGB) {
-    for (const d of this.byName.values()) d.color = color;
+    const t = this.targets();
+    t.forEach((d) => {
+      d.color = color;
+      d.mode = 'solid';
+    });
     this.emit();
-    // Switch every strip into static mode first, then apply the color.
-    await this.broadcast(SP110E.staticMode());
+    // Static mode first, then the color, or an animation would swallow it.
+    await this.sendTo(t, SP110E.staticMode());
     await delay(60);
-    await this.broadcast(SP110E.color(color));
+    await this.sendTo(t, SP110E.color(color));
   }
 
   async masterBrightness(value: number) {
-    await this.broadcast(SP110E.brightness(value));
+    const t = this.targets();
+    t.forEach((d) => (d.brightness = value));
+    this.emit();
+    await this.sendTo(t, SP110E.brightness(value));
   }
 
   async masterEffect(mode: number) {
-    await this.broadcast(SP110E.effect(mode));
+    const t = this.targets();
+    t.forEach((d) => {
+      d.effect = mode;
+      d.mode = mode === 0 ? 'auto' : 'effect';
+    });
+    this.emit();
+    await this.sendTo(t, SP110E.effect(mode));
   }
 
   async masterSpeed(value: number) {
-    await this.broadcast(SP110E.speed(value));
+    const t = this.targets();
+    t.forEach((d) => (d.speed = value));
+    this.emit();
+    await this.sendTo(t, SP110E.speed(value));
   }
 
   async masterAutoCycle() {
-    await this.broadcast(SP110E.autoCycle());
+    const t = this.targets();
+    t.forEach((d) => (d.mode = 'auto'));
+    this.emit();
+    await this.sendTo(t, SP110E.autoCycle());
   }
 
-  // Per-device controls.
+  /** Per-strip power quick-toggle from the device row. */
   async devicePower(name: string, on: boolean) {
     const entry = this.byName.get(name);
     if (!entry) return;
@@ -446,46 +504,62 @@ export class LightManager {
     try {
       await this.writeTo(entry, SP110E.power(on));
     } catch {
-      /* stays optimistic; UI shows connection state separately */
+      /* stays optimistic; connection state is shown separately */
     }
   }
 
-  async deviceColor(name: string, color: RGB) {
-    const entry = this.byName.get(name);
-    if (!entry) return;
-    entry.color = color;
-    this.emit();
-    try {
-      await this.writeTo(entry, SP110E.staticMode());
-      await delay(60);
-      await this.writeTo(entry, SP110E.color(color));
-      this.lastWrite = `${name}: color ✓`;
-    } catch (e) {
-      this.lastWrite = `${name}: color ✗ ${errMsg(e)}`;
+  // ---------------------------------------------------------------- scenes
+  /** Snapshot every strip's current light state (for saving a Scene). */
+  getLightStates(): Record<string, LightState> {
+    const out: Record<string, LightState> = {};
+    for (const d of this.byName.values()) {
+      out[d.name] = {
+        power: d.power,
+        mode: d.mode,
+        color: { ...d.color },
+        effect: d.effect,
+        brightness: d.brightness,
+        speed: d.speed,
+      };
     }
+    return out;
+  }
+
+  /** Apply a saved Scene: push each strip's saved state to what's connected. */
+  async applyStates(states: Record<string, LightState>): Promise<void> {
+    const targets = this.connectedDevices().filter((d) => states[d.name]);
+    await Promise.allSettled(targets.map((d) => this.applyOneState(d, states[d.name]!)));
+    this.lastWrite = `scene applied to ${targets.length}`;
     this.emit();
   }
 
-  async deviceEffect(name: string, mode: number) {
-    const entry = this.byName.get(name);
-    if (!entry) return;
+  private async applyOneState(entry: DeviceEntry, s: LightState): Promise<void> {
+    entry.power = s.power;
+    entry.mode = s.mode;
+    entry.color = { ...s.color };
+    entry.effect = s.effect;
+    entry.brightness = s.brightness;
+    entry.speed = s.speed;
     this.emit();
     try {
-      await this.writeTo(entry, SP110E.effect(mode));
-      this.lastWrite = `${name}: effect ${mode} ✓`;
-    } catch (e) {
-      this.lastWrite = `${name}: effect ✗ ${errMsg(e)}`;
-    }
-    this.emit();
-  }
-
-  async deviceBrightness(name: string, value: number) {
-    const entry = this.byName.get(name);
-    if (!entry) return;
-    try {
-      await this.writeTo(entry, SP110E.brightness(value));
+      await this.writeTo(entry, SP110E.power(s.power));
+      if (s.power) {
+        if (s.mode === 'solid') {
+          await this.writeTo(entry, SP110E.staticMode());
+          await delay(40);
+          await this.writeTo(entry, SP110E.color(s.color));
+        } else if (s.mode === 'effect') {
+          await this.writeTo(entry, SP110E.effect(s.effect));
+          await delay(20);
+          await this.writeTo(entry, SP110E.speed(s.speed));
+        } else {
+          await this.writeTo(entry, SP110E.autoCycle());
+        }
+        await delay(20);
+        await this.writeTo(entry, SP110E.brightness(s.brightness));
+      }
     } catch {
-      /* ignore */
+      /* one strip failing never blocks the others */
     }
   }
 
@@ -499,6 +573,7 @@ export class LightManager {
     this.disconnectSubs.get(name)?.remove();
     this.disconnectSubs.delete(name);
     this.writeMode.delete(name);
+    this.selected.delete(name);
     const entry = this.byName.get(name);
     if (entry?.id && this.ble) {
       this.ble.cancelDeviceConnection(entry.id).catch(() => {});

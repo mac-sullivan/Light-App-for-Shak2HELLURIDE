@@ -4,15 +4,19 @@ import Slider from '@react-native-community/slider';
 import { size, theme } from '../theme';
 import type { RGB } from '../protocol';
 import { useLightManager } from '../hooks/useLightManager';
+import { useScenes } from '../hooks/useScenes';
 import { useThrottledCallback } from '../util/throttle';
 import { BigButton } from './BigButton';
 import { SectionCard } from './SectionCard';
 import { ColorPad } from './ColorPad';
 import { EffectPad } from './EffectPad';
 import { DeviceList } from './DeviceList';
+import { SelectionChips } from './SelectionChips';
+import { Scenes } from './Scenes';
 
 export function HomeScreen() {
   const { snapshot, manager, addDevice, removeDevice } = useLightManager();
+  const { scenes, saveCurrent, applyScene, deleteScene } = useScenes();
 
   const [tab, setTab] = useState<'color' | 'effects'>('color');
   const [color, setColor] = useState<RGB>({ r: 255, g: 60, b: 140 });
@@ -24,7 +28,14 @@ export function HomeScreen() {
 
   const connected = snapshot.devices.filter((d) => d.state === 'connected').length;
   const total = snapshot.devices.length;
-  const allOn = connected > 0 && connected === total;
+
+  const allSelected = snapshot.selected.length === 0;
+  const selectedSet = useMemo(() => new Set(snapshot.selected), [snapshot.selected]);
+  const targetDevices = snapshot.devices.filter(
+    (d) => d.state === 'connected' && (allSelected || selectedSet.has(d.name))
+  );
+  const allOn = targetDevices.length > 0 && targetDevices.every((d) => d.power);
+  const targetLabel = allSelected ? 'All strips' : `${snapshot.selected.length} selected`;
 
   const summaryColor = useMemo(() => {
     if (total === 0) return theme.textDim;
@@ -60,18 +71,28 @@ export function HomeScreen() {
         />
       </View>
 
-      {/* Master power */}
-      <SectionCard title="Master power">
+      {/* Which strips the controls below target */}
+      <SectionCard title="Controlling">
+        <SelectionChips
+          devices={snapshot.devices}
+          selected={snapshot.selected}
+          onToggle={(name) => manager.toggleSelect(name)}
+          onAll={() => manager.selectAll()}
+        />
+      </SectionCard>
+
+      {/* Power for the current target */}
+      <SectionCard title={`Power · ${targetLabel}`}>
         <View style={styles.rowGap}>
           <BigButton
-            label="ALL ON"
+            label="ON"
             onPress={() => manager.masterPower(true)}
             tone="on"
             active={allOn}
             style={styles.flex}
           />
           <BigButton
-            label="ALL OFF"
+            label="OFF"
             onPress={() => manager.masterPower(false)}
             tone="off"
             style={styles.flex}
@@ -87,7 +108,7 @@ export function HomeScreen() {
       </View>
 
       {tab === 'color' ? (
-        <SectionCard title="Color">
+        <SectionCard title={`Color · ${targetLabel}`}>
           <ColorPad
             selected={color}
             onPick={(c) => {
@@ -97,7 +118,7 @@ export function HomeScreen() {
           />
         </SectionCard>
       ) : (
-        <SectionCard title="Effects">
+        <SectionCard title={`Effects · ${targetLabel}`}>
           <EffectPad
             selected={effect}
             showAll={showAll}
@@ -127,7 +148,7 @@ export function HomeScreen() {
       )}
 
       {/* Brightness — always visible */}
-      <SectionCard title={`Brightness  ·  ${Math.round((brightness / 255) * 100)}%`}>
+      <SectionCard title={`Brightness · ${Math.round((brightness / 255) * 100)}%`}>
         <Slider
           minimumValue={0}
           maximumValue={255}
@@ -145,10 +166,20 @@ export function HomeScreen() {
         />
       </SectionCard>
 
-      {/* Per-device */}
+      {/* Scenes — saved whole-car looks */}
+      <SectionCard title="Scenes">
+        <Scenes
+          scenes={scenes}
+          onSave={saveCurrent}
+          onApply={applyScene}
+          onDelete={deleteScene}
+        />
+      </SectionCard>
+
+      {/* Per-device list + selection */}
       <SectionCard title="Devices">
         <View style={styles.deviceHeader}>
-          <Text style={styles.deviceHint}>Tap a strip to control it</Text>
+          <Text style={styles.deviceHint}>Tap a strip to select · use chips above</Text>
           <BigButton
             label={editing ? 'Done' : 'Edit'}
             onPress={() => setEditing((e) => !e)}
@@ -161,12 +192,11 @@ export function HomeScreen() {
         <DeviceList
           devices={snapshot.devices}
           editing={editing}
+          selected={snapshot.selected}
+          onToggleSelect={(name) => manager.toggleSelect(name)}
           onTogglePower={(name, on) => manager.devicePower(name, on)}
           onRemove={removeDevice}
           onAdd={addDevice}
-          onDeviceColor={(name, c) => manager.deviceColor(name, c)}
-          onDeviceEffect={(name, m) => manager.deviceEffect(name, m)}
-          onDeviceBrightness={(name, v) => manager.deviceBrightness(name, v)}
         />
       </SectionCard>
 
@@ -202,7 +232,7 @@ const styles = StyleSheet.create({
   slider: { width: '100%', height: 56 },
   sliderLabel: { color: theme.textDim, fontSize: size.fontSm, fontWeight: '800', marginTop: 12, letterSpacing: 1 },
   deviceHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
-  deviceHint: { color: theme.textDim, fontSize: size.fontSm },
+  deviceHint: { color: theme.textDim, fontSize: size.fontSm, flex: 1 },
   editBtn: { minWidth: 96 },
   footer: { color: theme.textDim, textAlign: 'center', marginTop: 20, fontSize: size.fontSm },
   debug: { color: theme.textDim, textAlign: 'center', marginTop: 6, fontSize: 13, opacity: 0.7 },
