@@ -168,6 +168,9 @@ export function HomeScreen() {
       </SectionCard>
 
       <Text style={styles.footer}>Offline · Bluetooth only · {total} controllers</Text>
+      {snapshot.lastWrite ? (
+        <Text style={styles.debug}>last command: {snapshot.lastWrite}</Text>
+      ) : null}
     </ScrollView>
   );
 }
@@ -199,4 +202,5 @@ const styles = StyleSheet.create({
   deviceHint: { color: theme.textDim, fontSize: size.fontSm },
   editBtn: { minWidth: 96 },
   footer: { color: theme.textDim, textAlign: 'center', marginTop: 20, fontSize: size.fontSm },
+  debug: { color: theme.textDim, textAlign: 'center', marginTop: 6, fontSize: 13, opacity: 0.7 },
 });

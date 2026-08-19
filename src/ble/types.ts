@@ -33,4 +33,6 @@ export interface Snapshot {
   bt: BtState;
   started: boolean;
   scanning: boolean;
+  /** Human-readable result of the last command fan-out (for the debug line). */
+  lastWrite: string;
 }

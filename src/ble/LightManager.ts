@@ -13,6 +13,14 @@ const RESCAN_IDLE_MS = 4_000; // pause between sweeps while devices are missing
 const MAX_BACKOFF_MS = 20_000;
 const BASE_BACKOFF_MS = 600;
 
+// Second characteristic used by the documented wake-up handshake.
+const CHAR2_UUID = '0000ffe2-0000-1000-8000-00805f9b34fb';
+// Documented init sequence (from the LED Hue command gist): write 01 00 to
+// 0xFFE2, then CHECK_DEVICE (01 b7 e3 -> d5) to 0xFFE1. Some SP110E firmware
+// ignores all commands until this "wake" is sent. Best-effort; failures ignored.
+const WAKE_FFE2 = Uint8Array.from([0x01, 0x00]);
+const WAKE_FFE1 = Uint8Array.from([0x01, 0xb7, 0xe3, 0xd5]);
+
 /**
  * Owns all BLE state for the art car. One instance for the whole app.
  *
@@ -35,7 +43,17 @@ export class LightManager {
   private scanTimer: ReturnType<typeof setTimeout> | null = null;
 
   private listeners = new Set<() => void>();
-  private snapshot: Snapshot = { devices: [], bt: 'Unknown', started: false, scanning: false };
+  private snapshot: Snapshot = {
+    devices: [],
+    bt: 'Unknown',
+    started: false,
+    scanning: false,
+    lastWrite: '',
+  };
+
+  // Per-device write method, chosen from the characteristic's actual properties.
+  private writeMode = new Map<string, 'withoutResponse' | 'withResponse'>();
+  private lastWrite = '';
 
   // ---------------------------------------------------------------- store API
   subscribe = (cb: () => void): (() => void) => {
@@ -51,6 +69,7 @@ export class LightManager {
       bt: this.bt,
       started: this.started,
       scanning: this.scanning,
+      lastWrite: this.lastWrite,
     };
     this.listeners.forEach((cb) => cb());
   }
@@ -210,21 +229,66 @@ export class LightManager {
     try {
       const connected = await device.connect();
       await connected.discoverAllServicesAndCharacteristics();
-      entry.id = connected.id;
-      entry.state = 'connected';
-      entry.retry = 0;
-      entry.lastError = undefined;
-
-      // Independent disconnect handler per device -> backoff reconnect.
-      this.disconnectSubs.get(entry.name)?.remove();
-      const sub = connected.onDisconnected(() => this.onDisconnected(entry.name));
-      this.disconnectSubs.set(entry.name, sub);
-      this.emit();
+      await this.finishConnect(entry, connected);
     } catch (e) {
       entry.state = 'error';
       entry.lastError = errMsg(e);
       this.emit();
       this.scheduleReconnect(entry.name);
+    }
+  }
+
+  /** Shared post-connect setup: write method, disconnect handler, wake-up. */
+  private async finishConnect(entry: DeviceEntry, dev: Device) {
+    entry.id = dev.id;
+
+    // Pick the write method the characteristic actually supports. If we send
+    // "without response" to a characteristic that only allows "with response"
+    // (or vice-versa), iOS silently drops the write -> looks connected, does
+    // nothing. This is the usual cause of "connected but buttons don't work".
+    let mode: 'withoutResponse' | 'withResponse' = 'withoutResponse';
+    try {
+      const chars = await dev.characteristicsForService(SERVICE_UUID);
+      const c = chars.find((x) => x.uuid.toLowerCase() === CHAR_UUID.toLowerCase());
+      if (c) {
+        if (c.isWritableWithoutResponse) mode = 'withoutResponse';
+        else if (c.isWritableWithResponse) mode = 'withResponse';
+      }
+    } catch {
+      /* keep default */
+    }
+    this.writeMode.set(entry.name, mode);
+
+    entry.state = 'connected';
+    entry.retry = 0;
+    entry.lastError = undefined;
+
+    this.disconnectSubs.get(entry.name)?.remove();
+    const sub = dev.onDisconnected(() => this.onDisconnected(entry.name));
+    this.disconnectSubs.set(entry.name, sub);
+    this.emit();
+
+    // Best-effort wake-up handshake; never blocks or fails the connection.
+    void this.wake(entry);
+  }
+
+  /** Documented SP110E init handshake. Errors are swallowed on purpose. */
+  private async wake(entry: DeviceEntry) {
+    if (!this.ble || !entry.id) return;
+    try {
+      await this.ble.writeCharacteristicWithoutResponseForDevice(
+        entry.id,
+        SERVICE_UUID,
+        CHAR2_UUID,
+        bytesToBase64(WAKE_FFE2)
+      );
+    } catch {
+      /* char 0xFFE2 may not exist on this unit */
+    }
+    try {
+      await this.writeTo(entry, WAKE_FFE1);
+    } catch {
+      /* ignore */
     }
   }
 
@@ -267,13 +331,7 @@ export class LightManager {
       try {
         const dev = await this.ble.connectToDevice(entry.id);
         await dev.discoverAllServicesAndCharacteristics();
-        entry.state = 'connected';
-        entry.retry = 0;
-        entry.lastError = undefined;
-        this.disconnectSubs.get(name)?.remove();
-        const sub = dev.onDisconnected(() => this.onDisconnected(name));
-        this.disconnectSubs.set(name, sub);
-        this.emit();
+        await this.finishConnect(entry, dev);
         return;
       } catch (e) {
         entry.state = 'reconnecting';
@@ -308,12 +366,23 @@ export class LightManager {
     if (!this.ble || entry.state !== 'connected' || !entry.id) {
       throw new Error(`${entry.name} not connected`);
     }
-    await this.ble.writeCharacteristicWithoutResponseForDevice(
-      entry.id,
-      SERVICE_UUID,
-      CHAR_UUID,
-      bytesToBase64(bytes)
-    );
+    const b64 = bytesToBase64(bytes);
+    const mode = this.writeMode.get(entry.name) ?? 'withoutResponse';
+    if (mode === 'withResponse') {
+      await this.ble.writeCharacteristicWithResponseForDevice(
+        entry.id,
+        SERVICE_UUID,
+        CHAR_UUID,
+        b64
+      );
+    } else {
+      await this.ble.writeCharacteristicWithoutResponseForDevice(
+        entry.id,
+        SERVICE_UUID,
+        CHAR_UUID,
+        b64
+      );
+    }
   }
 
   private connectedDevices(): DeviceEntry[] {
@@ -323,7 +392,17 @@ export class LightManager {
   /** Fan a single frame out to every connected device, never sequentially. */
   private async broadcast(bytes: Uint8Array): Promise<void> {
     const targets = this.connectedDevices();
-    await Promise.allSettled(targets.map((t) => this.writeTo(t, bytes)));
+    const results = await Promise.allSettled(targets.map((t) => this.writeTo(t, bytes)));
+    const ok = results.filter((r) => r.status === 'fulfilled').length;
+    const fail = results.length - ok;
+    const firstErr = results.find((r) => r.status === 'rejected') as
+      | PromiseRejectedResult
+      | undefined;
+    this.lastWrite =
+      results.length === 0
+        ? 'no devices connected'
+        : `sent ✓${ok}${fail ? ` ✗${fail}: ${errMsg(firstErr?.reason)}` : ''}`;
+    this.emit();
   }
 
   // Master controls (optimistically update UI state, then fan out).
@@ -389,6 +468,7 @@ export class LightManager {
     }
     this.disconnectSubs.get(name)?.remove();
     this.disconnectSubs.delete(name);
+    this.writeMode.delete(name);
     const entry = this.byName.get(name);
     if (entry?.id && this.ble) {
       this.ble.cancelDeviceConnection(entry.id).catch(() => {});
