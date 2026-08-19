@@ -64,7 +64,7 @@ function frame(cmd: number, d0 = 0, d1 = 0, d2 = 0): Uint8Array {
   return Uint8Array.from([d0 & 0xff, d1 & 0xff, d2 & 0xff, cmd & 0xff]);
 }
 
-export const Commands = {
+export const SP110E = {
   powerOn: () => frame(CMD.ON),
   powerOff: () => frame(CMD.OFF),
   power: (on: boolean) => (on ? frame(CMD.ON) : frame(CMD.OFF)),

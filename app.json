@@ -10,10 +10,14 @@
     "ios": {
       "bundleIdentifier": "com.artcar.lights",
       "supportsTablet": true,
+      "config": {
+        "usesNonExemptEncryption": false
+      },
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "This app talks to the art car's LED controllers over Bluetooth. It never uses the internet.",
         "NSBluetoothPeripheralUsageDescription": "This app talks to the art car's LED controllers over Bluetooth. It never uses the internet.",
-        "UIBackgroundModes": []
+        "UIBackgroundModes": [],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "plugins": [
@@ -23,7 +27,8 @@
           "isBackgroundEnabled": false,
           "bluetoothAlwaysPermission": "This app talks to the art car's LED controllers over Bluetooth. It never uses the internet."
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "extra": {
       "eas": {

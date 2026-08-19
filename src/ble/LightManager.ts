@@ -2,7 +2,7 @@ import { BleManager, Device, State as BlePlxState } from 'react-native-ble-plx';
 import {
   CHAR_UUID,
   SERVICE_UUID,
-  Commands,
+  SP110E,
   bytesToBase64,
   type RGB,
 } from '../protocol';
@@ -330,29 +330,29 @@ export class LightManager {
   async masterPower(on: boolean) {
     for (const d of this.byName.values()) d.power = on;
     this.emit();
-    await this.broadcast(Commands.power(on));
+    await this.broadcast(SP110E.power(on));
   }
 
   async masterColor(color: RGB) {
     for (const d of this.byName.values()) d.color = color;
     this.emit();
-    await this.broadcast(Commands.color(color));
+    await this.broadcast(SP110E.color(color));
   }
 
   async masterBrightness(value: number) {
-    await this.broadcast(Commands.brightness(value));
+    await this.broadcast(SP110E.brightness(value));
   }
 
   async masterEffect(mode: number) {
-    await this.broadcast(Commands.effect(mode));
+    await this.broadcast(SP110E.effect(mode));
   }
 
   async masterSpeed(value: number) {
-    await this.broadcast(Commands.speed(value));
+    await this.broadcast(SP110E.speed(value));
   }
 
   async masterAutoCycle() {
-    await this.broadcast(Commands.autoCycle());
+    await this.broadcast(SP110E.autoCycle());
   }
 
   // Per-device controls.
@@ -362,7 +362,7 @@ export class LightManager {
     entry.power = on;
     this.emit();
     try {
-      await this.writeTo(entry, Commands.power(on));
+      await this.writeTo(entry, SP110E.power(on));
     } catch {
       /* stays optimistic; UI shows connection state separately */
     }
@@ -374,7 +374,7 @@ export class LightManager {
     entry.color = color;
     this.emit();
     try {
-      await this.writeTo(entry, Commands.color(color));
+      await this.writeTo(entry, SP110E.color(color));
     } catch {
       /* ignore */
     }
