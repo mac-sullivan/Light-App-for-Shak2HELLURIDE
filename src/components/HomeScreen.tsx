@@ -148,7 +148,7 @@ export function HomeScreen() {
       {/* Per-device */}
       <SectionCard title="Devices">
         <View style={styles.deviceHeader}>
-          <Text style={styles.deviceHint}>Tap ON/OFF per strip</Text>
+          <Text style={styles.deviceHint}>Tap a strip to control it</Text>
           <BigButton
             label={editing ? 'Done' : 'Edit'}
             onPress={() => setEditing((e) => !e)}
@@ -164,6 +164,9 @@ export function HomeScreen() {
           onTogglePower={(name, on) => manager.devicePower(name, on)}
           onRemove={removeDevice}
           onAdd={addDevice}
+          onDeviceColor={(name, c) => manager.deviceColor(name, c)}
+          onDeviceEffect={(name, m) => manager.deviceEffect(name, m)}
+          onDeviceBrightness={(name, v) => manager.deviceBrightness(name, v)}
         />
       </SectionCard>
 

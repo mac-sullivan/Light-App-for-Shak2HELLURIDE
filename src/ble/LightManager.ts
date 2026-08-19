@@ -415,6 +415,9 @@ export class LightManager {
   async masterColor(color: RGB) {
     for (const d of this.byName.values()) d.color = color;
     this.emit();
+    // Switch every strip into static mode first, then apply the color.
+    await this.broadcast(SP110E.staticMode());
+    await delay(60);
     await this.broadcast(SP110E.color(color));
   }
 
@@ -453,7 +456,34 @@ export class LightManager {
     entry.color = color;
     this.emit();
     try {
+      await this.writeTo(entry, SP110E.staticMode());
+      await delay(60);
       await this.writeTo(entry, SP110E.color(color));
+      this.lastWrite = `${name}: color ✓`;
+    } catch (e) {
+      this.lastWrite = `${name}: color ✗ ${errMsg(e)}`;
+    }
+    this.emit();
+  }
+
+  async deviceEffect(name: string, mode: number) {
+    const entry = this.byName.get(name);
+    if (!entry) return;
+    this.emit();
+    try {
+      await this.writeTo(entry, SP110E.effect(mode));
+      this.lastWrite = `${name}: effect ${mode} ✓`;
+    } catch (e) {
+      this.lastWrite = `${name}: effect ✗ ${errMsg(e)}`;
+    }
+    this.emit();
+  }
+
+  async deviceBrightness(name: string, value: number) {
+    const entry = this.byName.get(name);
+    if (!entry) return;
+    try {
+      await this.writeTo(entry, SP110E.brightness(value));
     } catch {
       /* ignore */
     }
@@ -500,6 +530,10 @@ function mapState(s: BlePlxState): BtState {
     default:
       return 'Unknown';
   }
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function errMsg(e: unknown): string {

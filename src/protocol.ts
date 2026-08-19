@@ -84,6 +84,13 @@ export const SP110E = {
   /** Auto-cycle through all built-in effects (driver's mode 0). */
   autoCycle: () => frame(CMD.AUTO),
 
+  /**
+   * Static single-color mode (mode 121). The gist documents 121 as "static".
+   * A solid color (0x1E) only displays once the strip is in this mode — while
+   * an animation is running, the color command is ignored. Send this first.
+   */
+  staticMode: () => frame(CMD.MODE, 121),
+
   speed: (value: number) => frame(CMD.SPEED, clampByte(value)),
 
   white: (value: number) => frame(CMD.WHITE, clampByte(value)),
