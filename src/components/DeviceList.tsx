@@ -15,6 +15,7 @@ export function DeviceList({
   onTogglePower,
   onRemove,
   onAdd,
+  onReset,
 }: {
   devices: DeviceEntry[];
   editing: boolean;
@@ -23,6 +24,7 @@ export function DeviceList({
   onTogglePower: (name: string, on: boolean) => void;
   onRemove: (name: string) => void;
   onAdd: (name: string) => void;
+  onReset: () => void;
 }) {
   const [draft, setDraft] = useState('');
   const allSelected = selected.length === 0;
@@ -101,6 +103,12 @@ export function DeviceList({
           </Pressable>
         </View>
       ) : null}
+
+      {editing ? (
+        <Pressable onPress={onReset} style={styles.reset} hitSlop={8}>
+          <Text style={styles.resetText}>Reset to the 9 default strips</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -162,4 +170,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.err,
   },
   removeText: { color: '#000', fontWeight: '800', fontSize: size.fontMd },
+  reset: { paddingVertical: 16, alignItems: 'center' },
+  resetText: { color: theme.warn, fontSize: size.fontMd, fontWeight: '700' },
 });

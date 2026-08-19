@@ -1,6 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import { lightManager } from '../ble/LightManager';
-import { loadDeviceNames, saveDeviceNames } from '../storage';
+import { DEFAULT_DEVICE_NAMES, loadDeviceNames, saveDeviceNames } from '../storage';
 import type { Snapshot } from '../ble/types';
 
 let loadedOnce = false;
@@ -14,6 +14,7 @@ export function useLightManager(): {
   manager: typeof lightManager;
   addDevice: (name: string) => void;
   removeDevice: (name: string) => void;
+  resetDefaults: () => void;
 } {
   const snapshot = useSyncExternalStore(lightManager.subscribe, lightManager.getSnapshot);
 
@@ -33,5 +34,10 @@ export function useLightManager(): {
     void saveDeviceNames(lightManager.currentNames());
   };
 
-  return { snapshot, manager: lightManager, addDevice, removeDevice };
+  const resetDefaults = () => {
+    lightManager.setWantedNames(DEFAULT_DEVICE_NAMES);
+    void saveDeviceNames(DEFAULT_DEVICE_NAMES);
+  };
+
+  return { snapshot, manager: lightManager, addDevice, removeDevice, resetDefaults };
 }

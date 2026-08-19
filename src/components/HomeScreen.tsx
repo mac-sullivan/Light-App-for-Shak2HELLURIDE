@@ -5,6 +5,7 @@ import { size, theme } from '../theme';
 import type { RGB } from '../protocol';
 import { useLightManager } from '../hooks/useLightManager';
 import { useScenes } from '../hooks/useScenes';
+import { useGroups } from '../hooks/useGroups';
 import { useThrottledCallback } from '../util/throttle';
 import { BigButton } from './BigButton';
 import { SectionCard } from './SectionCard';
@@ -12,11 +13,13 @@ import { ColorPad } from './ColorPad';
 import { EffectPad } from './EffectPad';
 import { DeviceList } from './DeviceList';
 import { SelectionChips } from './SelectionChips';
+import { Groups } from './Groups';
 import { Scenes } from './Scenes';
 
 export function HomeScreen() {
-  const { snapshot, manager, addDevice, removeDevice } = useLightManager();
+  const { snapshot, manager, addDevice, removeDevice, resetDefaults } = useLightManager();
   const { scenes, saveCurrent, applyScene, deleteScene } = useScenes();
+  const { groups, saveGroup, deleteGroup } = useGroups();
 
   const [tab, setTab] = useState<'color' | 'effects'>('color');
   const [color, setColor] = useState<RGB>({ r: 255, g: 60, b: 140 });
@@ -70,6 +73,17 @@ export function HomeScreen() {
           style={styles.reconnect}
         />
       </View>
+
+      {/* Groups (zones) — one tap selects a saved set of strips */}
+      <SectionCard title="Groups">
+        <Groups
+          groups={groups}
+          selected={snapshot.selected}
+          onApply={(members) => manager.selectOnly(members)}
+          onSave={(name) => saveGroup(name, snapshot.selected)}
+          onDelete={deleteGroup}
+        />
+      </SectionCard>
 
       {/* Which strips the controls below target */}
       <SectionCard title="Controlling">
@@ -197,6 +211,7 @@ export function HomeScreen() {
           onTogglePower={(name, on) => manager.devicePower(name, on)}
           onRemove={removeDevice}
           onAdd={addDevice}
+          onReset={resetDefaults}
         />
       </SectionCard>
 
