@@ -1,0 +1,16 @@
+{
+  "cli": {
+    "version": ">= 5.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "device": {
+      "distribution": "internal",
+      "developmentClient": false,
+      "ios": {
+        "simulator": false
+      }
+    }
+  },
+  "submit": {}
+}

@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "Art Car Lights",
+    "slug": "artcar-lights",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "artcarlights",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": false,
+    "ios": {
+      "bundleIdentifier": "com.artcar.lights",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "This app talks to the art car's LED controllers over Bluetooth. It never uses the internet.",
+        "NSBluetoothPeripheralUsageDescription": "This app talks to the art car's LED controllers over Bluetooth. It never uses the internet.",
+        "UIBackgroundModes": []
+      }
+    },
+    "plugins": [
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false,
+          "bluetoothAlwaysPermission": "This app talks to the art car's LED controllers over Bluetooth. It never uses the internet."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f07629b9-5f10-4acf-9beb-1b9edad7a8fe"
+      }
+    }
+  }
+}
