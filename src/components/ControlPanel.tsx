@@ -4,7 +4,6 @@ import Slider from '@react-native-community/slider';
 import { size, theme } from '../theme';
 import { SEQUENCES, type RGB } from '../protocol';
 import { useLightManager } from '../hooks/useLightManager';
-import { useScenes } from '../hooks/useScenes';
 import { useGroups } from '../hooks/useGroups';
 import { useThrottledCallback } from '../util/throttle';
 import { BigButton } from './BigButton';
@@ -13,7 +12,6 @@ import { ColorPicker } from './ColorPicker';
 import { EffectPad } from './EffectPad';
 import { SelectionChips } from './SelectionChips';
 import { Groups } from './Groups';
-import { Scenes } from './Scenes';
 import { AdvancedSetup } from './AdvancedSetup';
 
 const QUICK: { name: string; rgb: RGB }[] = [
@@ -25,7 +23,6 @@ const QUICK: { name: string; rgb: RGB }[] = [
 
 export function ControlPanel() {
   const { snapshot, manager } = useLightManager();
-  const { scenes, saveCurrent, applyScene, deleteScene } = useScenes();
   const { groups, saveGroup, deleteGroup } = useGroups();
 
   const [tab, setTab] = useState<'color' | 'effects'>('color');
@@ -177,11 +174,6 @@ export function ControlPanel() {
           />
         </SectionCard>
       )}
-
-      {/* Scenes */}
-      <SectionCard title="Scenes">
-        <Scenes scenes={scenes} onSave={saveCurrent} onApply={applyScene} onDelete={deleteScene} />
-      </SectionCard>
 
       {/* Advanced hardware setup (for odd strips like the Back Step pods) */}
       <SectionCard title="Advanced setup">
