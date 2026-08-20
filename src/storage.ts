@@ -1,44 +1,52 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { LightState } from './ble/types';
 
-// v2: switched the default strip list to the 9 real broadcast names.
-const NAMES_KEY = 'artcar.deviceNames.v2';
+const NAMES_KEY = 'artcar.deviceDefs.v2';
 const SCENES_KEY = 'artcar.scenes.v1';
-const GROUPS_KEY = 'artcar.groups.v1';
+const GROUPS_KEY = 'artcar.groups.v2';
 
-// The names the controllers advertise over BLE. Editable + persisted in-app so
-// new strips can be added in the field without a rebuild.
-export const DEFAULT_DEVICE_NAMES = [
-  'Front Siding',
-  'Front Skirt',
-  'Right Skirt',
-  'Left Skirt',
-  'Right Siding',
-  'Left Siding',
-  'Balcony',
-  'We Will Assist',
-  'Back Stairs',
-];
-
-export async function loadDeviceNames(): Promise<string[]> {
-  try {
-    const raw = await AsyncStorage.getItem(NAMES_KEY);
-    if (!raw) return [...DEFAULT_DEVICE_NAMES];
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.every((x) => typeof x === 'string')) {
-      return parsed;
-    }
-  } catch {
-    // fall through to defaults on any corruption
-  }
-  return [...DEFAULT_DEVICE_NAMES];
+/**
+ * A strip the app controls. `name` is the exact BLE broadcast name we connect
+ * by (stable key). `label` is an optional friendly display name the user sets
+ * (e.g. broadcast "RHS DL" shown as "Right Siding").
+ */
+export interface DeviceDef {
+  name: string;
+  label?: string;
 }
 
-export async function saveDeviceNames(names: string[]): Promise<void> {
+// Fresh installs start empty and discover lights via the Nearby scanner — no
+// pre-seeded ghost names to clutter things up.
+export const DEFAULT_DEVICE_DEFS: DeviceDef[] = [];
+
+export async function loadDeviceDefs(): Promise<DeviceDef[]> {
   try {
-    await AsyncStorage.setItem(NAMES_KEY, JSON.stringify(names));
+    const raw = await AsyncStorage.getItem(NAMES_KEY);
+    if (!raw) return [...DEFAULT_DEVICE_DEFS];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      // Migrate old string[] format, and accept the new object form.
+      return parsed
+        .map((x): DeviceDef | null => {
+          if (typeof x === 'string') return { name: x };
+          if (x && typeof x.name === 'string') {
+            return { name: x.name, label: typeof x.label === 'string' ? x.label : undefined };
+          }
+          return null;
+        })
+        .filter((x): x is DeviceDef => x !== null);
+    }
   } catch {
-    // Persistence is best-effort; the in-memory list still works this session.
+    // fall through to defaults
+  }
+  return [...DEFAULT_DEVICE_DEFS];
+}
+
+export async function saveDeviceDefs(defs: DeviceDef[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(NAMES_KEY, JSON.stringify(defs));
+  } catch {
+    // best-effort
   }
 }
 
@@ -56,7 +64,7 @@ export async function loadScenes(): Promise<Scene[]> {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) return parsed as Scene[];
   } catch {
-    // ignore corruption
+    // ignore
   }
   return [];
 }
@@ -69,23 +77,15 @@ export async function saveScenes(scenes: Scene[]): Promise<void> {
   }
 }
 
-/** A named set of strips controlled together. Members may overlap groups. */
+/** A named set of strips (by broadcast name) controlled together. */
 export interface Group {
   id: string;
   name: string;
   members: string[];
 }
 
-// Pre-built from the car's physical layout. Some strips appear in two groups
-// (e.g. Front Siding is in both "Front" and "Sidings") — that's intentional.
-export const DEFAULT_GROUPS: Group[] = [
-  { id: 'g-front', name: 'Front', members: ['Front Siding', 'Front Skirt'] },
-  { id: 'g-sidings', name: 'Sidings', members: ['Front Siding', 'Left Siding', 'Right Siding'] },
-  { id: 'g-skirting', name: 'Skirting', members: ['Front Skirt', 'Left Skirt', 'Right Skirt'] },
-  { id: 'g-balcony', name: 'Balcony', members: ['Balcony'] },
-  { id: 'g-assist', name: 'Assist Sign', members: ['We Will Assist'] },
-  { id: 'g-stairs', name: 'Stairs', members: ['Back Stairs'] },
-];
+// Start with no groups; the user builds them from their real lights.
+export const DEFAULT_GROUPS: Group[] = [];
 
 export async function loadGroups(): Promise<Group[]> {
   try {
@@ -94,7 +94,7 @@ export async function loadGroups(): Promise<Group[]> {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) return parsed as Group[];
   } catch {
-    // ignore corruption
+    // ignore
   }
   return [...DEFAULT_GROUPS];
 }

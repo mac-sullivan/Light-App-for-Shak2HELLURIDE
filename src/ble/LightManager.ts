@@ -1,3 +1,4 @@
+import { PermissionsAndroid, Platform } from 'react-native';
 import { BleManager, Device, State as BlePlxState } from 'react-native-ble-plx';
 import {
   CHAR_UUID,
@@ -59,8 +60,8 @@ export class LightManager {
     lastWrite: '',
   };
 
-  // Every BLE name seen while scanning (for the Nearby-lights picker).
-  private discovered = new Set<string>();
+  // Every BLE name seen while scanning -> latest signal (Nearby-lights picker).
+  private discovered = new Map<string, number>();
 
   // Per-device write method, chosen from the characteristic's actual properties.
   private writeMode = new Map<string, 'withoutResponse' | 'withResponse'>();
@@ -84,29 +85,37 @@ export class LightManager {
       started: this.started,
       scanning: this.scanning,
       selected: [...this.selected],
-      discovered: [...this.discovered].sort(),
+      discovered: [...this.discovered.entries()]
+        .map(([name, rssi]) => ({ name, rssi }))
+        .sort((a, b) => b.rssi - a.rssi),
       lastWrite: this.lastWrite,
     };
     this.listeners.forEach((cb) => cb());
   }
 
   // ------------------------------------------------------------- device list
-  setWantedNames(names: string[]) {
-    const wanted = new Set(names.map((n) => n.trim()).filter(Boolean));
-
-    // Add new entries.
-    for (const name of wanted) {
-      if (!this.byName.has(name)) {
+  /** Reconcile the device list from persisted defs (name + optional label). */
+  setDevices(defs: { name: string; label?: string }[]) {
+    const wanted = new Map<string, string | undefined>();
+    for (const d of defs) {
+      const n = d.name.trim();
+      if (n && !wanted.has(n)) wanted.set(n, d.label);
+    }
+    for (const [name, label] of wanted) {
+      const existing = this.byName.get(name);
+      if (existing) {
+        existing.label = label;
+      } else {
         this.byName.set(name, {
           ...DEFAULT_LIGHT_STATE,
           color: { ...DEFAULT_LIGHT_STATE.color },
           name,
+          label,
           state: 'idle',
           retry: 0,
         });
       }
     }
-    // Drop removed entries (and tear down their connections).
     for (const name of [...this.byName.keys()]) {
       if (!wanted.has(name)) {
         this.teardownDevice(name);
@@ -118,18 +127,27 @@ export class LightManager {
     if (this.started && this.bt === 'PoweredOn') this.ensureScanning();
   }
 
-  addDevice(name: string) {
+  addDevice(name: string, label?: string) {
     const n = name.trim();
     if (!n || this.byName.has(n)) return;
     this.byName.set(n, {
       ...DEFAULT_LIGHT_STATE,
       color: { ...DEFAULT_LIGHT_STATE.color },
       name: n,
+      label,
       state: 'idle',
       retry: 0,
     });
     this.emit();
     if (this.started && this.bt === 'PoweredOn') this.ensureScanning();
+  }
+
+  /** Set (or clear) a strip's friendly display name. */
+  setLabel(name: string, label: string) {
+    const entry = this.byName.get(name);
+    if (!entry) return;
+    entry.label = label.trim() || undefined;
+    this.emit();
   }
 
   removeDevice(name: string) {
@@ -138,6 +156,24 @@ export class LightManager {
     this.byName.delete(name);
     this.selected.delete(name);
     this.emit();
+  }
+
+  /** Remove every strip that isn't currently connected (clears junk/ghosts). */
+  removeOffline() {
+    for (const name of [...this.byName.keys()]) {
+      const d = this.byName.get(name);
+      if (d && d.state !== 'connected') {
+        this.teardownDevice(name);
+        this.byName.delete(name);
+        this.selected.delete(name);
+      }
+    }
+    this.emit();
+  }
+
+  /** Current device list for persistence. */
+  currentDefs(): { name: string; label?: string }[] {
+    return [...this.byName.values()].map((d) => ({ name: d.name, label: d.label }));
   }
 
   // ------------------------------------------------------------ selection
@@ -164,10 +200,13 @@ export class LightManager {
   }
 
   // ------------------------------------------------------------------- start
-  /** Create the BleManager and begin. Triggers the iOS Bluetooth prompt. */
-  start() {
+  /** Create the BleManager and begin. Triggers the OS Bluetooth prompt(s). */
+  async start() {
     if (this.started) return;
     this.started = true;
+    if (Platform.OS === 'android') {
+      await requestAndroidPermissions();
+    }
     this.ble = new BleManager();
     this.ble.onStateChange((s) => this.onBtState(mapState(s)), true);
     this.emit();
@@ -214,10 +253,13 @@ export class LightManager {
         if (!device) return;
         const advertised = device.name ?? device.localName ?? undefined;
         if (!advertised) return;
-        // Record every name we see so the user can pick real broadcast names.
+        // Record every name we see (with signal) so the user can pick lights.
+        const rssi = device.rssi ?? -127;
         if (!this.discovered.has(advertised)) {
-          this.discovered.add(advertised);
+          this.discovered.set(advertised, rssi);
           this.emit();
+        } else {
+          this.discovered.set(advertised, rssi);
         }
         const entry = this.byName.get(advertised);
         if (entry && (entry.state === 'idle' || entry.state === 'error' || entry.state === 'reconnecting')) {
@@ -625,6 +667,19 @@ function mapState(s: BlePlxState): BtState {
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Android 12+ needs BLUETOOTH_SCAN/CONNECT; older Android needs FINE_LOCATION.
+async function requestAndroidPermissions(): Promise<void> {
+  try {
+    const p = PermissionsAndroid.PERMISSIONS;
+    const perms = [p.BLUETOOTH_SCAN, p.BLUETOOTH_CONNECT, p.ACCESS_FINE_LOCATION].filter(
+      Boolean
+    ) as string[];
+    if (perms.length) await PermissionsAndroid.requestMultiple(perms as any);
+  } catch {
+    /* ignore; user can still grant in Settings */
+  }
 }
 
 function errMsg(e: unknown): string {

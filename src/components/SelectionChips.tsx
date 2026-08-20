@@ -4,74 +4,50 @@ import { size, theme } from '../theme';
 import type { DeviceEntry } from '../ble/types';
 import { connColor } from './StatusDot';
 
-/**
- * Picks which strips the master controls target. Empty selection = All.
- * "All" and per-strip chips toggle the same underlying selection set.
- */
+const nameOf = (d: DeviceEntry) => d.label || d.name;
+
+/** Per-strip chips for hand-picking a selection. "All" lives in the panel. */
 export function SelectionChips({
   devices,
   selected,
   onToggle,
-  onAll,
 }: {
   devices: DeviceEntry[];
   selected: string[];
   onToggle: (name: string) => void;
-  onAll: () => void;
 }) {
   const allActive = selected.length === 0;
   const sel = new Set(selected);
+  const ordered = [...devices].sort((a, b) => Number(b.state === 'connected') - Number(a.state === 'connected'));
 
   return (
     <View style={styles.wrap}>
-      <Chip label="ALL" active={allActive} onPress={onAll} big />
-      {devices.map((d) => (
-        <Chip
-          key={d.name}
-          label={d.name}
-          active={!allActive && sel.has(d.name)}
-          dot={connColor(d.state)}
-          onPress={() => onToggle(d.name)}
-        />
-      ))}
+      {ordered.map((d) => {
+        const active = !allActive && sel.has(d.name);
+        return (
+          <Pressable
+            key={d.name}
+            onPress={() => onToggle(d.name)}
+            hitSlop={6}
+            style={({ pressed }) => [
+              styles.chip,
+              active ? styles.chipActive : styles.chipIdle,
+              { opacity: pressed ? 0.7 : 1 },
+            ]}
+          >
+            <View style={[styles.dot, { backgroundColor: connColor(d.state) }]} />
+            <Text style={[styles.chipText, active && styles.chipTextActive]} numberOfLines={1}>
+              {nameOf(d)}
+            </Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
 
-function Chip({
-  label,
-  active,
-  onPress,
-  dot,
-  big,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-  dot?: string;
-  big?: boolean;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      hitSlop={6}
-      style={({ pressed }) => [
-        styles.chip,
-        big && styles.chipBig,
-        active ? styles.chipActive : styles.chipIdle,
-        { opacity: pressed ? 0.7 : 1 },
-      ]}
-    >
-      {dot ? <View style={[styles.dot, { backgroundColor: dot }]} /> : null}
-      <Text style={[styles.chipText, active && styles.chipTextActive]} numberOfLines={1}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
-  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -81,7 +57,6 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     borderWidth: 2,
   },
-  chipBig: { paddingHorizontal: 22 },
   chipIdle: { backgroundColor: theme.surfaceHi, borderColor: theme.border },
   chipActive: { backgroundColor: theme.accent, borderColor: '#ffffff44' },
   chipText: { color: theme.text, fontSize: size.fontMd, fontWeight: '800' },

@@ -6,6 +6,7 @@ import type { RGB } from '../protocol';
 import { StatusDot, connLabel } from './StatusDot';
 
 const rgbCss = (c: RGB) => `rgb(${c.r},${c.g},${c.b})`;
+const nameOf = (d: DeviceEntry) => d.label || d.name;
 
 export function DeviceList({
   devices,
@@ -15,7 +16,7 @@ export function DeviceList({
   onTogglePower,
   onRemove,
   onAdd,
-  onReset,
+  onSetLabel,
 }: {
   devices: DeviceEntry[];
   editing: boolean;
@@ -24,58 +25,62 @@ export function DeviceList({
   onTogglePower: (name: string, on: boolean) => void;
   onRemove: (name: string) => void;
   onAdd: (name: string) => void;
-  onReset: () => void;
+  onSetLabel: (name: string, label: string) => void;
 }) {
   const [draft, setDraft] = useState('');
   const allSelected = selected.length === 0;
   const sel = new Set(selected);
+  const ordered = [...devices].sort(
+    (a, b) => Number(b.state === 'connected') - Number(a.state === 'connected')
+  );
 
   return (
     <View>
-      {devices.map((d) => {
+      {ordered.map((d) => {
         const isSelected = !allSelected && sel.has(d.name);
-        return (
-          <View key={d.name} style={[styles.row, isSelected && styles.rowSelected]}>
-            <StatusDot state={d.state} />
-            <Pressable
-              style={styles.info}
-              onPress={() => !editing && onToggleSelect(d.name)}
-              disabled={editing}
-            >
-              <Text style={styles.name} numberOfLines={1}>
-                {d.name}
-              </Text>
-              <Text
-                style={[styles.state, { color: d.state === 'connected' ? theme.ok : theme.textDim }]}
-              >
-                {connLabel(d.state)}
-                {!editing ? (isSelected ? '  • selected' : '  • tap to select') : ''}
-              </Text>
-            </Pressable>
-
-            {editing ? (
+        if (editing) {
+          return (
+            <View key={d.name} style={styles.editRow}>
+              <StatusDot state={d.state} />
+              <View style={styles.editInfo}>
+                <LabelInput device={d} onSetLabel={onSetLabel} />
+                <Text style={styles.broadcast} numberOfLines={1}>
+                  broadcasts as “{d.name}”
+                </Text>
+              </View>
               <Pressable onPress={() => onRemove(d.name)} hitSlop={8} style={styles.removeBtn}>
                 <Text style={styles.removeText}>Remove</Text>
               </Pressable>
-            ) : (
-              <>
-                <View style={[styles.colorDot, { backgroundColor: rgbCss(d.color) }]} />
-                <Pressable
-                  onPress={() => onTogglePower(d.name, !d.power)}
-                  disabled={d.state !== 'connected'}
-                  hitSlop={8}
-                  style={[
-                    styles.powerBtn,
-                    { backgroundColor: d.power ? theme.ok : theme.surfaceHi },
-                    d.state !== 'connected' && styles.dim,
-                  ]}
-                >
-                  <Text style={[styles.powerText, { color: d.power ? '#000' : theme.text }]}>
-                    {d.power ? 'ON' : 'OFF'}
-                  </Text>
-                </Pressable>
-              </>
-            )}
+            </View>
+          );
+        }
+        return (
+          <View key={d.name} style={[styles.row, isSelected && styles.rowSelected]}>
+            <StatusDot state={d.state} />
+            <Pressable style={styles.info} onPress={() => onToggleSelect(d.name)}>
+              <Text style={styles.name} numberOfLines={1}>
+                {nameOf(d)}
+              </Text>
+              <Text style={[styles.state, { color: d.state === 'connected' ? theme.ok : theme.textDim }]}>
+                {connLabel(d.state)}
+                {isSelected ? '  • selected' : '  • tap to select'}
+              </Text>
+            </Pressable>
+            <View style={[styles.colorDot, { backgroundColor: rgbCss(d.color) }]} />
+            <Pressable
+              onPress={() => onTogglePower(d.name, !d.power)}
+              disabled={d.state !== 'connected'}
+              hitSlop={8}
+              style={[
+                styles.powerBtn,
+                { backgroundColor: d.power ? theme.ok : theme.surfaceHi },
+                d.state !== 'connected' && styles.dim,
+              ]}
+            >
+              <Text style={[styles.powerText, { color: d.power ? '#000' : theme.text }]}>
+                {d.power ? 'ON' : 'OFF'}
+              </Text>
+            </Pressable>
           </View>
         );
       })}
@@ -85,9 +90,8 @@ export function DeviceList({
           <TextInput
             value={draft}
             onChangeText={setDraft}
-            placeholder="Advertised BLE name…"
+            placeholder="Add a broadcast name…"
             placeholderTextColor={theme.textDim}
-            autoCapitalize="characters"
             autoCorrect={false}
             style={styles.input}
           />
@@ -103,13 +107,30 @@ export function DeviceList({
           </Pressable>
         </View>
       ) : null}
-
-      {editing ? (
-        <Pressable onPress={onReset} style={styles.reset} hitSlop={8}>
-          <Text style={styles.resetText}>Reset to the 9 default strips</Text>
-        </Pressable>
-      ) : null}
     </View>
+  );
+}
+
+// Local editable label field so typing doesn't re-render the whole list.
+function LabelInput({
+  device,
+  onSetLabel,
+}: {
+  device: DeviceEntry;
+  onSetLabel: (name: string, label: string) => void;
+}) {
+  const [text, setText] = useState(device.label ?? '');
+  return (
+    <TextInput
+      value={text}
+      onChangeText={setText}
+      onEndEditing={() => onSetLabel(device.name, text)}
+      onBlur={() => onSetLabel(device.name, text)}
+      placeholder={device.name}
+      placeholderTextColor={theme.textDim}
+      autoCorrect={false}
+      style={styles.labelInput}
+    />
   );
 }
 
@@ -140,6 +161,27 @@ const styles = StyleSheet.create({
   },
   powerText: { fontSize: size.fontMd, fontWeight: '800' },
   dim: { opacity: 0.4 },
+  editRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.border,
+  },
+  editInfo: { flex: 1 },
+  labelInput: {
+    minHeight: 48,
+    borderRadius: 10,
+    backgroundColor: theme.surfaceAlt,
+    borderWidth: 2,
+    borderColor: theme.border,
+    color: theme.text,
+    fontSize: size.fontMd,
+    fontWeight: '700',
+    paddingHorizontal: 12,
+  },
+  broadcast: { color: theme.textDim, fontSize: 12, marginTop: 4, marginLeft: 4 },
   addRow: { flexDirection: 'row', gap: 12, marginTop: 14, alignItems: 'center' },
   input: {
     flex: 1,
@@ -170,6 +212,4 @@ const styles = StyleSheet.create({
     backgroundColor: theme.err,
   },
   removeText: { color: '#000', fontWeight: '800', fontSize: size.fontMd },
-  reset: { paddingVertical: 16, alignItems: 'center' },
-  resetText: { color: theme.warn, fontSize: size.fontMd, fontWeight: '700' },
 });

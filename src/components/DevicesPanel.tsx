@@ -8,20 +8,17 @@ import { DeviceList } from './DeviceList';
 import { Nearby } from './Nearby';
 
 export function DevicesPanel() {
-  const { snapshot, manager, addDevice, removeDevice, resetDefaults } = useLightManager();
+  const { snapshot, manager, addDevice, removeDevice, removeOffline, setLabel } = useLightManager();
   const [editing, setEditing] = useState(false);
 
   const connected = snapshot.devices.filter((d) => d.state === 'connected').length;
   const total = snapshot.devices.length;
+  const offline = total - connected;
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
-    >
-      {/* Nearby scanner — find the controllers' real broadcast names */}
-      <SectionCard title="Nearby lights">
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      {/* Find + add the real lights */}
+      <SectionCard title="Add lights (nearby)">
         <Nearby
           discovered={snapshot.discovered}
           known={snapshot.devices.map((d) => d.name)}
@@ -32,10 +29,10 @@ export function DevicesPanel() {
       </SectionCard>
 
       {/* The strips this app controls */}
-      <SectionCard title={`My strips · ${connected}/${total} linked`}>
+      <SectionCard title={`My lights · ${connected}/${total} linked`}>
         <View style={styles.header}>
           <Text style={styles.hint}>
-            {editing ? 'Add / remove strip names' : 'Names must match what the light broadcasts'}
+            {editing ? 'Rename or remove strips' : 'Tap Edit to rename cryptic names'}
           </Text>
           <BigButton
             label={editing ? 'Done' : 'Edit'}
@@ -46,16 +43,33 @@ export function DevicesPanel() {
             style={styles.editBtn}
           />
         </View>
-        <DeviceList
-          devices={snapshot.devices}
-          editing={editing}
-          selected={snapshot.selected}
-          onToggleSelect={(name) => manager.toggleSelect(name)}
-          onTogglePower={(name, on) => manager.devicePower(name, on)}
-          onRemove={removeDevice}
-          onAdd={addDevice}
-          onReset={resetDefaults}
-        />
+
+        {total === 0 ? (
+          <Text style={styles.empty}>
+            No strips yet. Use “Add lights (nearby)” above to scan and add your controllers.
+          </Text>
+        ) : (
+          <DeviceList
+            devices={snapshot.devices}
+            editing={editing}
+            selected={snapshot.selected}
+            onToggleSelect={(name) => manager.toggleSelect(name)}
+            onTogglePower={(name, on) => manager.devicePower(name, on)}
+            onRemove={removeDevice}
+            onAdd={addDevice}
+            onSetLabel={setLabel}
+          />
+        )}
+
+        {offline > 0 ? (
+          <BigButton
+            label={`Remove ${offline} offline / junk`}
+            onPress={removeOffline}
+            small
+            tone="off"
+            style={styles.cleanup}
+          />
+        ) : null}
       </SectionCard>
     </ScrollView>
   );
@@ -67,4 +81,6 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   hint: { color: theme.textDim, fontSize: size.fontSm, flex: 1 },
   editBtn: { minWidth: 96 },
+  empty: { color: theme.textDim, fontSize: size.fontMd, lineHeight: 24, paddingVertical: 8 },
+  cleanup: { marginTop: 16 },
 });

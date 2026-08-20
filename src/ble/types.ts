@@ -20,13 +20,21 @@ export interface LightState {
 }
 
 export interface DeviceEntry extends LightState {
-  /** Advertised BLE name we match on. Stable key. */
+  /** Advertised BLE name we match/connect on. Stable key. */
   name: string;
+  /** Optional friendly display name the user sets. Falls back to `name`. */
+  label?: string;
   /** BLE peripheral id once discovered (iOS-assigned UUID). */
   id?: string;
   state: ConnState;
   lastError?: string;
   retry: number;
+}
+
+/** A name seen while scanning, with its latest signal strength. */
+export interface DiscoveredDevice {
+  name: string;
+  rssi: number;
 }
 
 export type BtState =
@@ -44,8 +52,8 @@ export interface Snapshot {
   scanning: boolean;
   /** Names the master controls target. Empty array means "all devices". */
   selected: string[];
-  /** Every BLE name seen while scanning — for the "Nearby lights" picker. */
-  discovered: string[];
+  /** Every BLE name seen while scanning, strongest signal first. */
+  discovered: DiscoveredDevice[];
   /** Human-readable result of the last command fan-out (for the debug line). */
   lastWrite: string;
 }
