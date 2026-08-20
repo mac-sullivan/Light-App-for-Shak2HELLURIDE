@@ -17,7 +17,6 @@ import { Scenes } from './Scenes';
 import { AdvancedSetup } from './AdvancedSetup';
 
 const QUICK: { name: string; rgb: RGB }[] = [
-  { name: 'White', rgb: { r: 255, g: 255, b: 255 } },
   { name: 'Warm', rgb: { r: 255, g: 170, b: 90 } },
   { name: 'Red', rgb: { r: 255, g: 0, b: 0 } },
   { name: 'Green', rgb: { r: 0, g: 255, b: 0 } },
@@ -98,6 +97,19 @@ export function ControlPanel() {
             }}
             onComplete={(c) => manager.masterColor(c)}
           />
+          <Text style={styles.sliderLabel}>Brightness · {Math.round((brightness / 255) * 100)}%</Text>
+          <Slider
+            minimumValue={0}
+            maximumValue={255}
+            value={brightness}
+            step={1}
+            minimumTrackTintColor={theme.warn}
+            maximumTrackTintColor={theme.surfaceHi}
+            thumbTintColor={theme.text}
+            onValueChange={(v) => { setBrightness(v); sendBrightness(v); }}
+            onSlidingComplete={(v) => manager.masterBrightness(v)}
+            style={styles.slider}
+          />
           <View style={styles.quickRow}>
             {QUICK.map((q) => (
               <BigButton
@@ -150,24 +162,21 @@ export function ControlPanel() {
             onSlidingComplete={(v) => manager.masterSpeed(v)}
             style={styles.slider}
           />
+          <Text style={styles.sliderLabel}>Brightness · {Math.round((brightness / 255) * 100)}%</Text>
+          <Slider
+            minimumValue={0}
+            maximumValue={255}
+            value={brightness}
+            step={1}
+            minimumTrackTintColor={theme.warn}
+            maximumTrackTintColor={theme.surfaceHi}
+            thumbTintColor={theme.text}
+            onValueChange={(v) => { setBrightness(v); sendBrightness(v); }}
+            onSlidingComplete={(v) => manager.masterBrightness(v)}
+            style={styles.slider}
+          />
         </SectionCard>
       )}
-
-      {/* Brightness */}
-      <SectionCard title={`Brightness · ${Math.round((brightness / 255) * 100)}%`}>
-        <Slider
-          minimumValue={0}
-          maximumValue={255}
-          value={brightness}
-          step={1}
-          minimumTrackTintColor={theme.warn}
-          maximumTrackTintColor={theme.surfaceHi}
-          thumbTintColor={theme.text}
-          onValueChange={(v) => { setBrightness(v); sendBrightness(v); }}
-          onSlidingComplete={(v) => manager.masterBrightness(v)}
-          style={styles.slider}
-        />
-      </SectionCard>
 
       {/* Scenes */}
       <SectionCard title="Scenes">

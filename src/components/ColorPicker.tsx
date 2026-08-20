@@ -9,9 +9,9 @@ import { hsvToRgb, rgbCss, rgbToHsv } from '../util/color';
 const HUE_STOPS = ['#ff0000', '#ffff00', '#00ff00', '#00ffff', '#0000ff', '#ff00ff', '#ff0000'] as const;
 
 /**
- * Precise, scroll-safe color picker: a rainbow Hue slider + a Saturation
- * slider, with a large live preview. Horizontal sliders never fight the
- * vertical page scroll (the old drag-on-a-wheel control did).
+ * Precise, scroll-safe hue picker. Saturation is locked at 100% (vivid LED
+ * color) and brightness lives just below, in the panel. Horizontal slider so
+ * it never fights the vertical page scroll.
  */
 export function ColorPicker({
   color,
@@ -22,17 +22,8 @@ export function ColorPicker({
   onChange: (c: RGB) => void;
   onComplete: (c: RGB) => void;
 }) {
-  const initial = rgbToHsv(color);
-  const [hue, setHue] = useState(initial.h);
-  const [sat, setSat] = useState(initial.s);
-
-  const current = hsvToRgb(hue, sat, 1);
-  const fullHue = hsvToRgb(hue, 1, 1);
-
-  const emit = (h: number, s: number, done: boolean) => {
-    const rgb = hsvToRgb(h, s, 1);
-    (done ? onComplete : onChange)(rgb);
-  };
+  const [hue, setHue] = useState(rgbToHsv(color).h);
+  const current = hsvToRgb(hue, 1, 1);
 
   return (
     <View>
@@ -57,34 +48,9 @@ export function ColorPicker({
           thumbTintColor="#ffffff"
           onValueChange={(v) => {
             setHue(v);
-            emit(v, sat, false);
+            onChange(hsvToRgb(v, 1, 1));
           }}
-          onSlidingComplete={(v) => emit(v, sat, true)}
-        />
-      </View>
-
-      <Text style={styles.label}>Saturation</Text>
-      <View style={styles.sliderWrap}>
-        <LinearGradient
-          colors={['#ffffff', rgbCss(fullHue)] as readonly [string, string]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.track}
-        />
-        <Slider
-          style={styles.slider}
-          minimumValue={0}
-          maximumValue={1}
-          step={0.01}
-          value={sat}
-          minimumTrackTintColor="transparent"
-          maximumTrackTintColor="transparent"
-          thumbTintColor="#ffffff"
-          onValueChange={(v) => {
-            setSat(v);
-            emit(hue, v, false);
-          }}
-          onSlidingComplete={(v) => emit(hue, v, true)}
+          onSlidingComplete={(v) => onComplete(hsvToRgb(v, 1, 1))}
         />
       </View>
     </View>
