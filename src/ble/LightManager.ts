@@ -553,6 +553,22 @@ export class LightManager {
     await this.sendTo(t, SP110E.autoCycle());
   }
 
+  /**
+   * Set the controller's color-order (RGB/GRB/…) for the current target, then
+   * re-show the current color so the change is immediately visible. Fixes
+   * "red shows as green" on GRB strips. Persists on the controller itself.
+   */
+  async masterSequence(index: number) {
+    const t = this.targets();
+    await this.sendTo(t, SP110E.sequence(index));
+    await delay(80);
+    await this.sendTo(t, SP110E.staticMode());
+    await delay(40);
+    await Promise.allSettled(t.map((d) => this.writeTo(d, SP110E.color(d.color)).catch(() => {})));
+    this.lastWrite = `color order set (${index})`;
+    this.emit();
+  }
+
   /** Per-strip power quick-toggle from the device row. */
   async devicePower(name: string, on: boolean) {
     const entry = this.byName.get(name);

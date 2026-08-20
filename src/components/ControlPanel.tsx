@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { size, theme } from '../theme';
-import type { RGB } from '../protocol';
+import { SEQUENCES, type RGB } from '../protocol';
 import { useLightManager } from '../hooks/useLightManager';
 import { useScenes } from '../hooks/useScenes';
 import { useGroups } from '../hooks/useGroups';
@@ -105,6 +105,18 @@ export function ControlPanel() {
                   setColor(q.rgb);
                   manager.masterColor(q.rgb);
                 }}
+                small
+                style={styles.quick}
+              />
+            ))}
+          </View>
+          <Text style={styles.sliderLabel}>Color order — tap until red looks red</Text>
+          <View style={styles.quickRow}>
+            {SEQUENCES.map((s, i) => (
+              <BigButton
+                key={s}
+                label={s}
+                onPress={() => manager.masterSequence(i)}
                 small
                 style={styles.quick}
               />
