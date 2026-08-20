@@ -14,6 +14,7 @@ import { EffectPad } from './EffectPad';
 import { SelectionChips } from './SelectionChips';
 import { Groups } from './Groups';
 import { Scenes } from './Scenes';
+import { AdvancedSetup } from './AdvancedSetup';
 
 const QUICK: { name: string; rgb: RGB }[] = [
   { name: 'White', rgb: { r: 255, g: 255, b: 255 } },
@@ -36,6 +37,7 @@ export function ControlPanel() {
   const [speed, setSpeed] = useState(180);
   const [showAllEffects, setShowAllEffects] = useState(false);
   const [showStrips, setShowStrips] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const allSelected = snapshot.selected.length === 0;
   const selectedSet = useMemo(() => new Set(snapshot.selected), [snapshot.selected]);
@@ -48,6 +50,7 @@ export function ControlPanel() {
   const sendColor = useThrottledCallback((c: RGB) => manager.masterColor(c), 90);
   const sendBrightness = useThrottledCallback((v: number) => manager.masterBrightness(v), 70);
   const sendSpeed = useThrottledCallback((v: number) => manager.masterSpeed(v), 70);
+  const sendWhite = useThrottledCallback((v: number) => manager.masterWhite(v), 80);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -169,6 +172,26 @@ export function ControlPanel() {
       {/* Scenes */}
       <SectionCard title="Scenes">
         <Scenes scenes={scenes} onSave={saveCurrent} onApply={applyScene} onDelete={deleteScene} />
+      </SectionCard>
+
+      {/* Advanced hardware setup (for odd strips like the Back Step pods) */}
+      <SectionCard title="Advanced setup">
+        <BigButton
+          label={showAdvanced ? 'Hide advanced' : 'LED type · white · pixel count'}
+          onPress={() => setShowAdvanced((s) => !s)}
+          active={showAdvanced}
+          tone="accent"
+          small
+        />
+        {showAdvanced ? (
+          <AdvancedSetup
+            targetLabel={targetLabel}
+            onIcModel={(i) => manager.masterIcModel(i)}
+            onWhite={sendWhite}
+            onWhiteFinal={(v) => manager.masterWhite(v)}
+            onPixels={(n) => manager.masterPixels(n)}
+          />
+        ) : null}
       </SectionCard>
 
       {snapshot.lastWrite ? <Text style={styles.debug}>last command: {snapshot.lastWrite}</Text> : null}

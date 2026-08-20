@@ -569,6 +569,29 @@ export class LightManager {
     this.emit();
   }
 
+  // ---- Advanced hardware setup (applies to the current selection) ----
+  /** LED chip / IC model (index into IC_MODELS). Changes how colors render. */
+  async masterIcModel(index: number) {
+    const t = this.targets();
+    await this.sendTo(t, SP110E.icModel(index));
+    this.lastWrite = `IC model → ${index}`;
+    this.emit();
+  }
+
+  /** White channel level 0..255 — set to 0 to kill the wash on RGBW LEDs. */
+  async masterWhite(value: number) {
+    const t = this.targets();
+    await this.sendTo(t, SP110E.white(value));
+  }
+
+  /** Number of pixels/pods on the strip (1..1024). */
+  async masterPixels(count: number) {
+    const t = this.targets();
+    await this.sendTo(t, SP110E.pixels(count));
+    this.lastWrite = `pixels → ${count}`;
+    this.emit();
+  }
+
   /** Per-strip power quick-toggle from the device row. */
   async devicePower(name: string, on: boolean) {
     const entry = this.byName.get(name);
