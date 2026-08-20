@@ -86,7 +86,7 @@ export function AdvancedSetup({
 }
 
 const styles = StyleSheet.create({
-  applies: { color: theme.accent, fontSize: size.fontSm, fontWeight: '800', marginBottom: 4 },
+  applies: { color: theme.accent, fontSize: size.fontSm, fontWeight: '800', marginTop: size.gap, marginBottom: 4 },
   label: { color: theme.textDim, fontSize: size.fontSm, fontWeight: '700', marginTop: 14, marginBottom: 2 },
   slider: { width: '100%', height: 48 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },

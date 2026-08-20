@@ -1,8 +1,48 @@
-import React, { useMemo } from 'react';
-import { Linking, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { Animated, Easing, Linking, StyleSheet, Text, View } from 'react-native';
 import { size, theme } from '../theme';
 import { BigButton } from './BigButton';
 import type { BtState } from '../ble/types';
+
+const FLAME_COLORS = ['#ff2d00', '#ff6a00', '#ff2d00', '#ffab00', '#ff4d00', '#ff8400', '#ff2d00'];
+
+// A row of flickering flames along the bottom — a little poof-rig vibe.
+function FireStrip() {
+  const anims = useRef(FLAME_COLORS.map(() => new Animated.Value(Math.random()))).current;
+
+  useEffect(() => {
+    const loops = anims.map((v, i) => {
+      const dur = 420 + ((i * 130) % 380);
+      return Animated.loop(
+        Animated.sequence([
+          Animated.timing(v, { toValue: 1, duration: dur, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+          Animated.timing(v, { toValue: 0, duration: dur * 0.85, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        ])
+      );
+    });
+    loops.forEach((l) => l.start());
+    return () => loops.forEach((l) => l.stop());
+  }, [anims]);
+
+  return (
+    <View style={styles.fireRow} pointerEvents="none">
+      {anims.map((v, i) => {
+        const scaleY = v.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1.35] });
+        const translateY = v.interpolate({ inputRange: [0, 1], outputRange: [10, -10] });
+        const opacity = v.interpolate({ inputRange: [0, 1], outputRange: [0.5, 0.95] });
+        return (
+          <Animated.View
+            key={i}
+            style={[
+              styles.flame,
+              { backgroundColor: FLAME_COLORS[i], opacity, transform: [{ translateY }, { scaleY }] },
+            ]}
+          />
+        );
+      })}
+    </View>
+  );
+}
 
 // A random one drops onto the intro each launch. Fun, kind, a little cheeky.
 const QUOTES = [
@@ -106,6 +146,7 @@ function Gate({
       {button && onPress ? (
         <BigButton label={button} onPress={onPress} tone="accent" active style={styles.btn} />
       ) : null}
+      <FireStrip />
     </View>
   );
 }
@@ -135,4 +176,24 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   btn: { marginTop: 8 },
+  fireRow: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 90,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-around',
+    paddingHorizontal: 12,
+  },
+  flame: {
+    flex: 1,
+    marginHorizontal: 3,
+    height: 60,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderBottomLeftRadius: 6,
+    borderBottomRightRadius: 6,
+  },
 });
