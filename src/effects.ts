@@ -1,7 +1,6 @@
 import type { RGB } from './protocol';
 
-// Big, glove-friendly color swatches. A full spectrum plus warm/cool whites.
-// Ordered so the grid reads like a rainbow with the whites at the end.
+// Big, glove-friendly color swatches (used by the quick-color row).
 export const SWATCHES: { name: string; rgb: RGB }[] = [
   { name: 'Red', rgb: { r: 255, g: 0, b: 0 } },
   { name: 'Orange', rgb: { r: 255, g: 80, b: 0 } },
@@ -22,24 +21,44 @@ export const SWATCHES: { name: string; rgb: RGB }[] = [
 ];
 
 /**
- * Curated effect picks.
+ * Friendly names for effects 1..120.
  *
- * IMPORTANT: the SP110E's mode->animation mapping is NOT documented in either
- * source, so these names are just friendly labels for mode numbers spread
- * across the 1..120 range — not verified descriptions. Tap around to find the
- * looks you like; the full 1..120 grid is also available in the UI.
+ * IMPORTANT: the SP110E's mode -> animation mapping is NOT documented anywhere,
+ * so these names are evocative LABELS, not verified descriptions of each mode.
+ * They exist so you can read a vibe instead of memorising numbers — tap around
+ * to learn which number looks like what on your strips.
  */
-export const EFFECT_PICKS: { name: string; mode: number }[] = [
-  { name: 'Rainbow', mode: 1 },
-  { name: 'Flow', mode: 9 },
-  { name: 'Chase', mode: 17 },
-  { name: 'Comet', mode: 25 },
-  { name: 'Sparkle', mode: 34 },
-  { name: 'Pulse', mode: 42 },
-  { name: 'Fire', mode: 51 },
-  { name: 'Wave', mode: 60 },
-  { name: 'Strobe', mode: 68 },
-  { name: 'Twinkle', mode: 77 },
-  { name: 'Meteor', mode: 90 },
-  { name: 'Party', mode: 110 },
+export const EFFECT_NAMES: string[] = [
+  'Rainbow Flow', 'Rainbow Cycle', 'Rainbow Chase', 'Rainbow Comet', 'Rainbow Twinkle',
+  'Rainbow Breathe', 'Rainbow Strobe', 'Rainbow Wave', 'Rainbow Fade', 'Rainbow Sparkle',
+  'Spectrum Drift', 'Spectrum Pulse', 'Red Chase', 'Red Comet', 'Red Breathe',
+  'Red Strobe', 'Red Sparkle', 'Red Wave', 'Green Chase', 'Green Comet',
+  'Green Breathe', 'Green Strobe', 'Green Sparkle', 'Green Wave', 'Blue Chase',
+  'Blue Comet', 'Blue Breathe', 'Blue Strobe', 'Blue Sparkle', 'Blue Wave',
+  'Amber Chase', 'Amber Glow', 'Amber Pulse', 'Gold Shimmer', 'Sunset Fade',
+  'Sunrise Glow', 'Fire Flicker', 'Fire Storm', 'Ember Glow', 'Lava Flow',
+  'Inferno', 'Candle Flicker', 'Ocean Wave', 'Deep Sea', 'Aqua Flow',
+  'Tide Pull', 'Ripple', 'Rainfall', 'Waterfall', 'Frost',
+  'Ice Crystal', 'Glacier Drift', 'Aurora', 'Northern Lights', 'Cosmic Drift',
+  'Starfield', 'Meteor Shower', 'Comet Tail', 'Shooting Star', 'Galaxy Spin',
+  'Nebula', 'Pulse Wave', 'Heartbeat', 'Slow Breathe', 'Fast Breathe',
+  'Throb', 'Bounce', 'Ping Pong', 'Runner', 'Sprint',
+  'Chase Up', 'Chase Down', 'Dual Chase', 'Twin Comets', 'Color Wipe',
+  'Paint Roll', 'Scanner', 'Larson Scan', 'Cylon', 'Night Rider',
+  'White Strobe', 'Color Strobe', 'Police Lights', 'Emergency', 'Disco',
+  'Party Mix', 'Club Strobe', 'Confetti', 'Twinkle Stars', 'Fairy Lights',
+  'Glitter', 'Sparkle Burst', 'Firefly', 'Fireworks', 'Bloom',
+  'Blossom', 'Kaleidoscope', 'Prism', 'Color Melt', 'Gradient Slide',
+  'Fade In Out', 'Cross Fade', 'Color Swap', 'Flash Cycle', 'Random Pop',
+  'Static Noise', 'TV Static', 'Glitch', 'Matrix Rain', 'Neon Pulse',
+  'Cyber Wave', 'Laser Sweep', 'Plasma', 'Energy Field', 'Vortex',
+  'Whirlpool', 'Spiral', 'Twister', 'Hyperdrive', 'Warp Speed',
 ];
+
+/** Name for effect mode 1..120 (falls back to "Effect N" if out of range). */
+export function effectName(mode: number): string {
+  return EFFECT_NAMES[mode - 1] ?? `Effect ${mode}`;
+}
+
+// A handful of favorites for the quick row (labels come from EFFECT_NAMES).
+export const EFFECT_FAVORITES: number[] = [1, 9, 17, 37, 43, 53, 57, 85, 94, 110, 113, 120];
