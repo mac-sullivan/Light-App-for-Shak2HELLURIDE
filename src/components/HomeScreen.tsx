@@ -22,33 +22,32 @@ export function HomeScreen() {
 
   return (
     <View style={styles.root}>
-      {/* Shared header: connection state + reconnect, visible on both tabs */}
-      <View style={styles.header}>
-        <View style={[styles.summaryBar, { borderColor: summaryColor }]}>
-          <Text style={[styles.summaryNum, { color: summaryColor }]}>
-            {connected}/{total}
-          </Text>
-          <Text style={styles.summaryLabel}>LINKED</Text>
-          {snapshot.scanning ? <Text style={styles.scanning}>scanning…</Text> : null}
+      {/* Main content */}
+      <View style={styles.body}>{tab === 'control' ? <ControlPanel /> : <DevicesPanel />}</View>
+
+      {/* Bottom control bar: status + reconnect + tab switcher */}
+      <View style={styles.bar}>
+        <View style={styles.statusRow}>
+          <View style={[styles.pill, { borderColor: summaryColor }]}>
+            <View style={[styles.dot, { backgroundColor: summaryColor }]} />
+            <Text style={[styles.count, { color: summaryColor }]}>
+              {connected}/{total}
+            </Text>
+            <Text style={styles.linked}>{snapshot.scanning ? 'scanning…' : 'linked'}</Text>
+          </View>
+          <BigButton label="Reconnect all" onPress={() => manager.reconnectAll()} tone="accent" small style={styles.reconnect} />
         </View>
-        <BigButton label="Reconnect all" onPress={() => manager.reconnectAll()} tone="accent" small style={styles.reconnect} />
-      </View>
-
-      {/* Tab switcher */}
-      <View style={styles.tabs}>
-        <BigButton label="Control" onPress={() => setTab('control')} active={tab === 'control'} tone="accent" small style={styles.flex} />
-        <BigButton
-          label={total ? `Devices · ${connected}/${total}` : 'Devices'}
-          onPress={() => setTab('devices')}
-          active={tab === 'devices'}
-          tone="accent"
-          small
-          style={styles.flex}
-        />
-      </View>
-
-      <View style={styles.body}>
-        {tab === 'control' ? <ControlPanel /> : <DevicesPanel />}
+        <View style={styles.tabs}>
+          <BigButton label="Control" onPress={() => setTab('control')} active={tab === 'control'} tone="accent" small style={styles.flex} />
+          <BigButton
+            label={total ? `Devices · ${connected}/${total}` : 'Devices'}
+            onPress={() => setTab('devices')}
+            active={tab === 'devices'}
+            tone="accent"
+            small
+            style={styles.flex}
+          />
+        </View>
       </View>
     </View>
   );
@@ -56,29 +55,32 @@ export function HomeScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
-  header: {
-    flexDirection: 'row',
-    gap: size.gap,
-    alignItems: 'stretch',
-    paddingHorizontal: size.gap,
-    paddingTop: size.gap,
-  },
-  summaryBar: {
-    flex: 1,
-    borderRadius: size.radius,
-    borderWidth: 3,
+  body: { flex: 1 },
+  bar: {
+    borderTopWidth: 1,
+    borderTopColor: theme.border,
     backgroundColor: theme.surface,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    flexDirection: 'row',
-    alignItems: 'baseline',
+    paddingHorizontal: size.gap,
+    paddingTop: 10,
+    paddingBottom: 6,
     gap: 10,
   },
-  summaryNum: { fontSize: size.fontXl, fontWeight: '900' },
-  summaryLabel: { color: theme.textDim, fontSize: size.fontMd, fontWeight: '800', letterSpacing: 2 },
-  scanning: { color: theme.warn, fontSize: size.fontSm, marginLeft: 'auto', fontWeight: '700' },
-  reconnect: { justifyContent: 'center' },
-  tabs: { flexDirection: 'row', gap: size.gap, paddingHorizontal: size.gap, paddingTop: size.gap },
+  statusRow: { flexDirection: 'row', gap: size.gap, alignItems: 'stretch' },
+  pill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 2,
+    borderRadius: size.radius,
+    backgroundColor: theme.surfaceAlt,
+    paddingHorizontal: 16,
+    minHeight: size.touchMd,
+  },
+  dot: { width: 16, height: 16, borderRadius: 8 },
+  count: { fontSize: size.fontLg, fontWeight: '900' },
+  linked: { color: theme.textDim, fontSize: size.fontSm, fontWeight: '800', letterSpacing: 1 },
+  reconnect: { justifyContent: 'center', minWidth: 150 },
+  tabs: { flexDirection: 'row', gap: size.gap },
   flex: { flex: 1 },
-  body: { flex: 1, marginTop: size.gap },
 });
