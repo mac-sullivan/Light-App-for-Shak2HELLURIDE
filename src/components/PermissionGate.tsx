@@ -116,7 +116,7 @@ export function PermissionGate({
       title="Shack-To-Hell-U-Ride LED Controls"
       body="This app connects to your SP110E LED controllers over Bluetooth to run every strip on the shack at once."
       quote={quote}
-      button="Enable Bluetooth & Connect"
+      button="🔥  Light it up  🔥"
       onPress={onStart}
     />
   );
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     marginBottom: 32,
   },
-  btn: { marginTop: 8 },
+  btn: { marginTop: 8, backgroundColor: '#ff6a00', borderColor: '#ffb300', minHeight: 76 },
   fireRow: {
     position: 'absolute',
     left: 0,

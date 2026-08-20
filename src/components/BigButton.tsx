@@ -38,7 +38,12 @@ export function BigButton({ label, onPress, active, tone = 'default', small, sty
       ]}
     >
       <View pointerEvents="none">
-        <Text style={[styles.label, { color: fg, fontSize: small ? size.fontMd : size.fontLg }]}>
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
+          style={[styles.label, { color: fg, fontSize: small ? size.fontMd : size.fontLg }]}
+        >
           {label}
         </Text>
       </View>
