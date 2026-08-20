@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { size, theme } from '../theme';
 import { useLightManager } from '../hooks/useLightManager';
 import { BigButton } from './BigButton';
@@ -10,7 +10,7 @@ import { DevicesPanel } from './DevicesPanel';
 type Tab = 'control' | 'scenes' | 'devices';
 
 export function HomeScreen() {
-  const { snapshot, manager } = useLightManager();
+  const { snapshot } = useLightManager();
   const [tab, setTab] = useState<Tab>('control');
 
   const connected = snapshot.devices.filter((d) => d.state === 'connected').length;
@@ -29,76 +29,53 @@ export function HomeScreen() {
         {tab === 'control' ? <ControlPanel /> : tab === 'scenes' ? <ScenesPanel /> : <DevicesPanel />}
       </View>
 
-      {/* Compact bottom bar: status dot + count, reconnect icon, tabs */}
-      <View style={styles.bar}>
-        <View style={styles.statusRow}>
-          <View style={[styles.pill, { borderColor: summaryColor }]}>
-            <View style={[styles.dot, { backgroundColor: summaryColor }]} />
-            <Text style={[styles.count, { color: summaryColor }]}>
-              {connected}/{total}
-            </Text>
-          </View>
-          <Pressable
-            onPress={() => manager.reconnectAll()}
-            hitSlop={8}
-            style={({ pressed }) => [styles.reconnect, { opacity: pressed ? 0.7 : 1 }]}
-          >
-            <Text style={styles.reconnectIcon}>↻</Text>
-          </Pressable>
-          {snapshot.scanning ? <Text style={styles.scanning}>scanning…</Text> : null}
+      {/* Fixed status pill, always pinned to the top-right corner */}
+      <View style={styles.statusPill} pointerEvents="none">
+        <View style={[styles.pill, { borderColor: summaryColor }]}>
+          <View style={[styles.dot, { backgroundColor: summaryColor }]} />
+          <Text style={[styles.count, { color: summaryColor }]}>
+            {connected}/{total}
+          </Text>
+          {snapshot.scanning ? <Text style={styles.scan}>⟳</Text> : null}
         </View>
+      </View>
 
-        <View style={styles.tabs}>
-          <Tab label="Control" active={tab === 'control'} onPress={() => setTab('control')} />
-          <Tab label="Scenes" active={tab === 'scenes'} onPress={() => setTab('scenes')} />
-          <Tab label="Devices" active={tab === 'devices'} onPress={() => setTab('devices')} />
-        </View>
+      {/* Bottom tabs */}
+      <View style={styles.tabs}>
+        <BigButton label="Control" active={tab === 'control'} onPress={() => setTab('control')} tone="accent" small style={styles.flex} />
+        <BigButton label="Scenes" active={tab === 'scenes'} onPress={() => setTab('scenes')} tone="accent" small style={styles.flex} />
+        <BigButton label="Devices" active={tab === 'devices'} onPress={() => setTab('devices')} tone="accent" small style={styles.flex} />
       </View>
     </View>
   );
 }
 
-function Tab({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  return <BigButton label={label} active={active} onPress={onPress} tone="accent" small style={styles.flex} />;
-}
-
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
   body: { flex: 1 },
-  bar: {
-    borderTopWidth: 1,
-    borderTopColor: theme.border,
-    backgroundColor: theme.surface,
-    paddingHorizontal: size.gap,
-    paddingTop: 8,
-    paddingBottom: 6,
-    gap: 8,
-  },
-  statusRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  statusPill: { position: 'absolute', top: 6, right: size.gap, zIndex: 10 },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     borderWidth: 2,
-    borderRadius: 22,
-    backgroundColor: theme.surfaceAlt,
-    paddingHorizontal: 14,
-    height: 44,
+    borderRadius: 20,
+    backgroundColor: theme.surface,
+    paddingHorizontal: 12,
+    height: 40,
   },
-  dot: { width: 14, height: 14, borderRadius: 7 },
+  dot: { width: 12, height: 12, borderRadius: 6 },
   count: { fontSize: size.fontMd, fontWeight: '900' },
-  reconnect: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: theme.surfaceHi,
-    borderWidth: 2,
-    borderColor: theme.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+  scan: { color: theme.warn, fontSize: 15, fontWeight: '900' },
+  tabs: {
+    flexDirection: 'row',
+    gap: size.gap,
+    paddingHorizontal: size.gap,
+    paddingTop: 8,
+    paddingBottom: 6,
+    borderTopWidth: 1,
+    borderTopColor: theme.border,
+    backgroundColor: theme.surface,
   },
-  reconnectIcon: { color: theme.text, fontSize: 24, fontWeight: '900', marginTop: -2 },
-  scanning: { color: theme.warn, fontSize: size.fontSm, fontWeight: '700', marginLeft: 'auto' },
-  tabs: { flexDirection: 'row', gap: size.gap },
   flex: { flex: 1 },
 });

@@ -17,6 +17,13 @@ export function DevicesPanel() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <BigButton
+        label={`↻  Reconnect all  ·  ${connected}/${total}`}
+        onPress={() => manager.reconnectAll()}
+        tone="accent"
+        style={styles.reconnect}
+      />
+
       {/* Find + add the real lights */}
       <SectionCard title="Add lights (nearby)">
         <Nearby
@@ -77,7 +84,8 @@ export function DevicesPanel() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
-  content: { padding: size.gap, paddingBottom: 48 },
+  content: { paddingHorizontal: size.gap, paddingTop: 54, paddingBottom: 48 },
+  reconnect: { marginBottom: size.gap },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   hint: { color: theme.textDim, fontSize: size.fontSm, flex: 1 },
   editBtn: { minWidth: 96 },

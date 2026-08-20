@@ -50,23 +50,45 @@ export async function saveDeviceDefs(defs: DeviceDef[]): Promise<void> {
   }
 }
 
-/** A saved whole-car look: each strip name -> its light state. */
+/**
+ * A saved whole-car look. `states` maps each strip name -> its light state.
+ * `uniform`, if set, applies one state to EVERY connected strip (used by
+ * pre-made scenes that don't know your device names yet).
+ */
 export interface Scene {
   id: string;
   name: string;
   states: Record<string, LightState>;
+  uniform?: LightState;
 }
+
+// A pre-made scene for testing: a warm orange/red fire animation on all strips.
+export const DEFAULT_SCENES: Scene[] = [
+  {
+    id: 'scene-hawty',
+    name: 'Hawty 🔥',
+    states: {},
+    uniform: {
+      power: true,
+      mode: 'effect',
+      color: { r: 255, g: 40, b: 0 }, // base warm ember for monochrome fire effects
+      effect: 40, // "Lava Flow" — a fire-family animation
+      brightness: 255,
+      speed: 200,
+    },
+  },
+];
 
 export async function loadScenes(): Promise<Scene[]> {
   try {
     const raw = await AsyncStorage.getItem(SCENES_KEY);
-    if (!raw) return [];
+    if (raw === null) return [...DEFAULT_SCENES];
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) return parsed as Scene[];
   } catch {
     // ignore
   }
-  return [];
+  return [...DEFAULT_SCENES];
 }
 
 export async function saveScenes(scenes: Scene[]): Promise<void> {

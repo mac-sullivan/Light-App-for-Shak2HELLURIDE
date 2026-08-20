@@ -630,6 +630,14 @@ export class LightManager {
     this.emit();
   }
 
+  /** Apply one light state to EVERY connected strip (pre-made/uniform scenes). */
+  async applyUniform(s: LightState): Promise<void> {
+    const targets = this.connectedDevices();
+    await Promise.allSettled(targets.map((d) => this.applyOneState(d, s)));
+    this.lastWrite = `scene → ${targets.length}`;
+    this.emit();
+  }
+
   private async applyOneState(entry: DeviceEntry, s: LightState): Promise<void> {
     entry.power = s.power;
     entry.mode = s.mode;
@@ -641,6 +649,9 @@ export class LightManager {
     try {
       await this.writeTo(entry, SP110E.power(s.power));
       if (s.power) {
+        // Set the base color first so monochrome effects (fire, breathe) tint.
+        await this.writeTo(entry, SP110E.color(s.color));
+        await delay(20);
         if (s.mode === 'solid') {
           await this.writeTo(entry, SP110E.staticMode());
           await delay(40);

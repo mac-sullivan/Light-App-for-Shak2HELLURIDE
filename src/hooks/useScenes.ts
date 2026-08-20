@@ -28,7 +28,8 @@ export function useScenes() {
   };
 
   const applyScene = (scene: Scene) => {
-    void lightManager.applyStates(scene.states);
+    if (scene.uniform) void lightManager.applyUniform(scene.uniform);
+    else void lightManager.applyStates(scene.states);
   };
 
   const deleteScene = (id: string) => {

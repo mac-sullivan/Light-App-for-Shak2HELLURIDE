@@ -5,6 +5,7 @@ import { size, theme } from '../theme';
 import { SEQUENCES, type RGB } from '../protocol';
 import { useLightManager } from '../hooks/useLightManager';
 import { useGroups } from '../hooks/useGroups';
+import { useScenes } from '../hooks/useScenes';
 import { useThrottledCallback } from '../util/throttle';
 import { BigButton } from './BigButton';
 import { SectionCard } from './SectionCard';
@@ -14,20 +15,13 @@ import { SelectionChips } from './SelectionChips';
 import { Groups } from './Groups';
 import { AdvancedSetup } from './AdvancedSetup';
 
-const QUICK: { name: string; rgb: RGB }[] = [
-  { name: 'Warm', rgb: { r: 255, g: 170, b: 90 } },
-  { name: 'Red', rgb: { r: 255, g: 0, b: 0 } },
-  { name: 'Green', rgb: { r: 0, g: 255, b: 0 } },
-  { name: 'Blue', rgb: { r: 0, g: 40, b: 255 } },
-];
-
 export function ControlPanel() {
   const { snapshot, manager } = useLightManager();
   const { groups, saveGroup, deleteGroup } = useGroups();
+  const { scenes, applyScene } = useScenes();
 
   const [tab, setTab] = useState<'color' | 'effects'>('color');
   const [color, setColor] = useState<RGB>({ r: 255, g: 60, b: 140 });
-  const [pickerKey, setPickerKey] = useState(0);
   const [brightness, setBrightness] = useState(200);
   const [effect, setEffect] = useState<number | undefined>(undefined);
   const [speed, setSpeed] = useState(180);
@@ -86,7 +80,6 @@ export function ControlPanel() {
       {tab === 'color' ? (
         <SectionCard title={`Color · ${targetLabel}`}>
           <ColorPicker
-            key={pickerKey}
             color={color}
             onChange={(c) => {
               setColor(c);
@@ -107,21 +100,6 @@ export function ControlPanel() {
             onSlidingComplete={(v) => manager.masterBrightness(v)}
             style={styles.slider}
           />
-          <View style={styles.quickRow}>
-            {QUICK.map((q) => (
-              <BigButton
-                key={q.name}
-                label={q.name}
-                onPress={() => {
-                  setColor(q.rgb);
-                  setPickerKey((k) => k + 1);
-                  manager.masterColor(q.rgb);
-                }}
-                small
-                style={styles.quick}
-              />
-            ))}
-          </View>
           <Text style={styles.sliderLabel}>Color order — tap until red looks red</Text>
           <View style={styles.quickRow}>
             {SEQUENCES.map((s, i) => (
@@ -137,6 +115,24 @@ export function ControlPanel() {
         </SectionCard>
       ) : (
         <SectionCard title={`Effects · ${targetLabel}`}>
+          {scenes.length > 0 ? (
+            <>
+              <Text style={styles.sliderLabel}>♥ Your scenes</Text>
+              <View style={styles.quickRow}>
+                {scenes.map((s) => (
+                  <BigButton
+                    key={s.id}
+                    label={`♥ ${s.name}`}
+                    onPress={() => applyScene(s)}
+                    small
+                    tone="accent"
+                    active
+                    style={styles.quick}
+                  />
+                ))}
+              </View>
+            </>
+          ) : null}
           <EffectPad
             selected={effect}
             showAll={showAllEffects}
@@ -202,7 +198,7 @@ export function ControlPanel() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
-  content: { padding: size.gap, paddingBottom: 48 },
+  content: { paddingHorizontal: size.gap, paddingTop: 54, paddingBottom: 48 },
   rowGap: { flexDirection: 'row', gap: size.gap, marginBottom: size.gap },
   flex: { flex: 1 },
   slider: { width: '100%', height: 56 },
