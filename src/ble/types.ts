@@ -61,8 +61,8 @@ export interface Snapshot {
 export const DEFAULT_LIGHT_STATE: LightState = {
   power: true,
   mode: 'solid',
-  color: { r: 255, g: 60, b: 140 },
+  color: { r: 255, g: 0, b: 0 }, // deepest red on first start
   effect: 1,
-  brightness: 200,
+  brightness: 255, // 100% on first start
   speed: 180,
 };

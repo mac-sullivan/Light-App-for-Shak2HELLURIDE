@@ -1,74 +1,104 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, Linking, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { size, theme } from '../theme';
-import { BigButton } from './BigButton';
 import type { BtState } from '../ble/types';
 
-const FLAME_COLORS = ['#ff2d00', '#ff6a00', '#ff2d00', '#ffab00', '#ff4d00', '#ff8400', '#ff2d00'];
+const ICON = require('../../assets/icon.png');
 
-// A row of flickering flames along the bottom — a little poof-rig vibe.
-function FireStrip() {
-  const anims = useRef(FLAME_COLORS.map(() => new Animated.Value(Math.random()))).current;
+// A random one drops onto the intro each launch. Funny, a little naughty, kind.
+const QUOTES = [
+  'You didn’t come this far to blend in.',
+  'Consent first. Then chaos.',
+  'Be so bright they need sunglasses at 3am.',
+  'Warning: contents may cause bad decisions and great memories.',
+  'Flirt with everyone, commit to the light show.',
+  'Your ex isn’t thinking about you. The lights are. Focus.',
+  'Hotter than the playa at noon, sweeter than the dawn.',
+  'Somebody’s having the night of their life tonight. Might be you.',
+  'Radically yourself, aggressively lit.',
+  'Shine like you mean it. Touch like you’re asked.',
+  'Leave ’em glowing. Leave no trace.',
+  'Sweaty, dusty, glowing, unstoppable.',
+  'Be the reason someone believes in magic tonight.',
+  'Turn it up. The desert can take it.',
+  'You’re a whole vibe. Go be loud about it.',
+  'Dust in your teeth, stars in your eyes, fire on your shack.',
+];
+
+// Full-screen fire that fades to dark at the top so text stays readable.
+function FireBackground() {
+  const a = useRef(new Animated.Value(0)).current;
+  const b = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const loops = anims.map((v, i) => {
-      const dur = 420 + ((i * 130) % 380);
-      return Animated.loop(
+    const mk = (v: Animated.Value, dur: number) =>
+      Animated.loop(
         Animated.sequence([
-          Animated.timing(v, { toValue: 1, duration: dur, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-          Animated.timing(v, { toValue: 0, duration: dur * 0.85, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+          Animated.timing(v, { toValue: 1, duration: dur, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(v, { toValue: 0, duration: dur, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
         ])
       );
-    });
-    loops.forEach((l) => l.start());
-    return () => loops.forEach((l) => l.stop());
-  }, [anims]);
+    const l1 = mk(a, 2300);
+    const l2 = mk(b, 1500);
+    l1.start();
+    l2.start();
+    return () => { l1.stop(); l2.stop(); };
+  }, [a, b]);
 
   return (
-    <View style={styles.fireRow} pointerEvents="none">
-      {anims.map((v, i) => {
-        const scaleY = v.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1.35] });
-        const translateY = v.interpolate({ inputRange: [0, 1], outputRange: [10, -10] });
-        const opacity = v.interpolate({ inputRange: [0, 1], outputRange: [0.5, 0.95] });
-        return (
-          <Animated.View
-            key={i}
-            style={[
-              styles.flame,
-              { backgroundColor: FLAME_COLORS[i], opacity, transform: [{ translateY }, { scaleY }] },
-            ]}
-          />
-        );
-      })}
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <LinearGradient
+        colors={['#000000', '#0a0400', '#2a0d00', '#5e2100']}
+        locations={[0, 0.42, 0.72, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <Animated.View
+        style={[
+          styles.glow,
+          {
+            opacity: a.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.72] }),
+            transform: [{ translateY: a.interpolate({ inputRange: [0, 1], outputRange: [24, -12] }) }],
+          },
+        ]}
+      >
+        <LinearGradient colors={['transparent', '#ff6a0077', '#ff2200cc']} locations={[0, 0.55, 1]} style={StyleSheet.absoluteFill} />
+      </Animated.View>
+      <Animated.View
+        style={[
+          styles.glow,
+          {
+            opacity: b.interpolate({ inputRange: [0, 1], outputRange: [0.2, 0.6] }),
+            transform: [{ translateY: b.interpolate({ inputRange: [0, 1], outputRange: [12, -24] }) }],
+          },
+        ]}
+      >
+        <LinearGradient colors={['transparent', '#ffb30055', '#ff7a0099']} locations={[0, 0.6, 1]} style={StyleSheet.absoluteFill} />
+      </Animated.View>
     </View>
   );
 }
 
-// A random one drops onto the intro each launch. Fun, kind, a little cheeky.
-const QUOTES = [
-  'Warning: may cause spontaneous dance parties.',
-  'Consent is sexy. So are your LEDs.',
-  'If the shack’s rockin’… crank the brightness.',
-  'Dust happens. Sparkle anyway.',
-  'Hydrate, then illuminate.',
-  'Leave no trace, leave lots of glow.',
-  'Radical self-expression, now in RGB.',
-  'You look fantastic in ultraviolet.',
-  'Some like it hot. Try the Hawty scene. 🔥',
-  'Bright lights, questionable decisions.',
-  'Turn it up until the neighbors send friend requests.',
-  'Slaps harder than a dust storm.',
-  'Be the light you want to see on the playa.',
-  'Your aura is showing. It’s gorgeous.',
-  'Trust the dust. Trust the funk.',
-  'Come for the lights, stay for the shenanigans.',
-];
+// Sleek dark + gold luxury button.
+function LuxuryButton({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1, marginTop: 4 })}>
+      <LinearGradient
+        colors={['#2b2118', '#191411', '#0c0a09']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.luxBtn}
+      >
+        <Text style={styles.luxText}>{label}</Text>
+      </LinearGradient>
+    </Pressable>
+  );
+}
 
 /**
  * Shown before the main UI. Explains why we need Bluetooth (no modals), then
  * lets the user start — which lazily creates the BleManager and triggers the
- * OS permission prompt. Also handles the not-authorized / radio-off states
- * inline (never a blocking dialog).
+ * OS permission prompt. Also handles the not-authorized / radio-off states.
  */
 export function PermissionGate({
   bt,
@@ -83,7 +113,6 @@ export function PermissionGate({
 }) {
   const quote = useMemo(() => QUOTES[Math.floor(Math.random() * QUOTES.length)]!, []);
 
-  // Once we're started and the radio is on, show the app.
   if (started && bt === 'PoweredOn') return <>{children}</>;
 
   if (started && bt === 'Unauthorized') {
@@ -110,13 +139,13 @@ export function PermissionGate({
     return <Gate title="No Bluetooth LE" body="This device can't do Bluetooth Low Energy." />;
   }
 
-  // Not started yet -> rationale + start button.
   return (
     <Gate
-      title="Shack-To-Hell-U-Ride LED Controls"
-      body="This app connects to your SP110E LED controllers over Bluetooth to run every strip on the shack at once."
+      title="Shack-To-Hell-U-Ride"
+      subtitle="LED Controls"
+      body="Runs every strip on the shack over Bluetooth."
       quote={quote}
-      button="🔥  Light it up  🔥"
+      button="Light it up"
       onPress={onStart}
     />
   );
@@ -124,12 +153,14 @@ export function PermissionGate({
 
 function Gate({
   title,
+  subtitle,
   body,
   quote,
   button,
   onPress,
 }: {
   title: string;
+  subtitle?: string;
   body: string;
   quote?: string;
   button?: string;
@@ -137,63 +168,35 @@ function Gate({
 }) {
   return (
     <View style={styles.wrap}>
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>✷</Text>
+      <FireBackground />
+      <View style={styles.content}>
+        <Image source={ICON} style={styles.icon} />
+        <Text style={styles.title}>{title}</Text>
+        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        <Text style={styles.body}>{body}</Text>
+        {quote ? <Text style={styles.quote}>“{quote}”</Text> : null}
+        {button && onPress ? <LuxuryButton label={button} onPress={onPress} /> : null}
       </View>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.body}>{body}</Text>
-      {quote ? <Text style={styles.quote}>“{quote}”</Text> : null}
-      {button && onPress ? (
-        <BigButton label={button} onPress={onPress} tone="accent" active style={styles.btn} />
-      ) : null}
-      <FireStrip />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: theme.bg, padding: 28, justifyContent: 'center' },
-  badge: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: theme.accentDim,
+  wrap: { flex: 1, backgroundColor: '#000' },
+  content: { flex: 1, padding: 32, justifyContent: 'center' },
+  glow: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '65%' },
+  icon: { width: 104, height: 104, borderRadius: 26, marginBottom: 24 },
+  title: { color: theme.text, fontSize: 40, fontWeight: '900', letterSpacing: 0.5 },
+  subtitle: { color: '#ffb37a', fontSize: 22, fontWeight: '800', letterSpacing: 3, textTransform: 'uppercase', marginTop: 2, marginBottom: 16 },
+  body: { color: '#e8d9cf', fontSize: size.fontMd, lineHeight: 26, marginBottom: 18 },
+  quote: { color: '#ffcaa0', fontSize: size.fontMd, fontStyle: 'italic', fontWeight: '600', lineHeight: 26, marginBottom: 34 },
+  luxBtn: {
+    paddingVertical: 22,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#c9a24b',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 28,
-    borderWidth: 2,
-    borderColor: theme.accent,
   },
-  badgeText: { color: theme.accent, fontSize: 48, fontWeight: '900' },
-  title: { color: theme.text, fontSize: size.fontXl, fontWeight: '900', marginBottom: 16 },
-  body: { color: theme.textDim, fontSize: size.fontMd, lineHeight: 26, marginBottom: 20 },
-  quote: {
-    color: theme.accent,
-    fontSize: size.fontMd,
-    fontStyle: 'italic',
-    fontWeight: '700',
-    lineHeight: 26,
-    marginBottom: 32,
-  },
-  btn: { marginTop: 8, backgroundColor: '#ff6a00', borderColor: '#ffb300', minHeight: 76 },
-  fireRow: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 90,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-around',
-    paddingHorizontal: 12,
-  },
-  flame: {
-    flex: 1,
-    marginHorizontal: 3,
-    height: 60,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    borderBottomLeftRadius: 6,
-    borderBottomRightRadius: 6,
-  },
+  luxText: { color: '#e8c67a', fontSize: 20, fontWeight: '800', letterSpacing: 4, textTransform: 'uppercase' },
 });

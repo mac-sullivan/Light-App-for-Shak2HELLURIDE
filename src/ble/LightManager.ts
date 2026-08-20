@@ -358,8 +358,22 @@ export class LightManager {
     this.disconnectSubs.set(entry.name, sub);
     this.emit();
 
-    // Best-effort wake-up handshake; never blocks or fails the connection.
-    void this.wake(entry);
+    // Wake, then push the app's known state so the strip matches on connect
+    // (deep red + full brightness on first open; the current look on reconnect).
+    void this.initDevice(entry);
+  }
+
+  private async initDevice(entry: DeviceEntry) {
+    await this.wake(entry);
+    await delay(60);
+    await this.applyOneState(entry, {
+      power: entry.power,
+      mode: entry.mode,
+      color: { ...entry.color },
+      effect: entry.effect,
+      brightness: entry.brightness,
+      speed: entry.speed,
+    });
   }
 
   /** Documented SP110E init handshake. Errors are swallowed on purpose. */

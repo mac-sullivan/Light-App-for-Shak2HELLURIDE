@@ -6,8 +6,9 @@ import { BigButton } from './BigButton';
 import { ControlPanel } from './ControlPanel';
 import { ScenesPanel } from './ScenesPanel';
 import { DevicesPanel } from './DevicesPanel';
+import { ShackMapPanel } from './ShackMapPanel';
 
-type Tab = 'control' | 'scenes' | 'devices';
+type Tab = 'control' | 'map' | 'scenes' | 'devices';
 
 export function HomeScreen() {
   const { snapshot } = useLightManager();
@@ -26,7 +27,15 @@ export function HomeScreen() {
   return (
     <View style={styles.root}>
       <View style={styles.body}>
-        {tab === 'control' ? <ControlPanel /> : tab === 'scenes' ? <ScenesPanel /> : <DevicesPanel />}
+        {tab === 'control' ? (
+          <ControlPanel />
+        ) : tab === 'map' ? (
+          <ShackMapPanel />
+        ) : tab === 'scenes' ? (
+          <ScenesPanel />
+        ) : (
+          <DevicesPanel />
+        )}
       </View>
 
       {/* Fixed status pill, always pinned to the top-right corner */}
@@ -43,6 +52,7 @@ export function HomeScreen() {
       {/* Bottom tabs */}
       <View style={styles.tabs}>
         <BigButton label="Control" active={tab === 'control'} onPress={() => setTab('control')} tone="accent" small style={styles.flex} />
+        <BigButton label="Map" active={tab === 'map'} onPress={() => setTab('map')} tone="accent" small style={styles.flex} />
         <BigButton label="Scenes" active={tab === 'scenes'} onPress={() => setTab('scenes')} tone="accent" small style={styles.flex} />
         <BigButton label="Devices" active={tab === 'devices'} onPress={() => setTab('devices')} tone="accent" small style={styles.flex} />
       </View>

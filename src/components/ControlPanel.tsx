@@ -21,8 +21,8 @@ export function ControlPanel() {
   const { scenes, applyScene } = useScenes();
 
   const [tab, setTab] = useState<'color' | 'effects'>('color');
-  const [color, setColor] = useState<RGB>({ r: 255, g: 60, b: 140 });
-  const [brightness, setBrightness] = useState(200);
+  const [color, setColor] = useState<RGB>({ r: 255, g: 0, b: 0 });
+  const [brightness, setBrightness] = useState(255);
   const [effect, setEffect] = useState<number | undefined>(undefined);
   const [speed, setSpeed] = useState(180);
   const [showAllEffects, setShowAllEffects] = useState(false);
