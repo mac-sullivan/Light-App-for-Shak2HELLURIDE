@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { size, theme } from '../theme';
 import { SEQUENCES, type RGB } from '../protocol';
@@ -9,7 +9,7 @@ import { useGroups } from '../hooks/useGroups';
 import { useThrottledCallback } from '../util/throttle';
 import { BigButton } from './BigButton';
 import { SectionCard } from './SectionCard';
-import { ColorWheel } from './ColorWheel';
+import { ColorPicker } from './ColorPicker';
 import { EffectPad } from './EffectPad';
 import { SelectionChips } from './SelectionChips';
 import { Groups } from './Groups';
@@ -27,11 +27,10 @@ export function ControlPanel() {
   const { snapshot, manager } = useLightManager();
   const { scenes, saveCurrent, applyScene, deleteScene } = useScenes();
   const { groups, saveGroup, deleteGroup } = useGroups();
-  const { width } = useWindowDimensions();
-  const wheelSize = Math.min(width - 72, 300);
 
   const [tab, setTab] = useState<'color' | 'effects'>('color');
   const [color, setColor] = useState<RGB>({ r: 255, g: 60, b: 140 });
+  const [pickerKey, setPickerKey] = useState(0);
   const [brightness, setBrightness] = useState(200);
   const [effect, setEffect] = useState<number | undefined>(undefined);
   const [speed, setSpeed] = useState(180);
@@ -87,14 +86,14 @@ export function ControlPanel() {
 
       {tab === 'color' ? (
         <SectionCard title={`Color · ${targetLabel}`}>
-          <ColorWheel
+          <ColorPicker
+            key={pickerKey}
             color={color}
-            size={wheelSize}
             onChange={(c) => {
               setColor(c);
               sendColor(c);
             }}
-            onSelect={(c) => manager.masterColor(c)}
+            onComplete={(c) => manager.masterColor(c)}
           />
           <View style={styles.quickRow}>
             {QUICK.map((q) => (
@@ -103,6 +102,7 @@ export function ControlPanel() {
                 label={q.name}
                 onPress={() => {
                   setColor(q.rgb);
+                  setPickerKey((k) => k + 1);
                   manager.masterColor(q.rgb);
                 }}
                 small
