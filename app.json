@@ -1,9 +1,10 @@
 {
   "expo": {
-    "name": "Art Car Lights",
+    "name": "Shak2Helluride",
     "slug": "artcar-lights",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "scheme": "artcarlights",
     "userInterfaceStyle": "dark",
     "newArchEnabled": false,
@@ -21,7 +22,11 @@
       }
     },
     "android": {
-      "package": "com.artcar.lights"
+      "package": "com.artcar.lights",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-foreground.png",
+        "backgroundColor": "#0E0E12"
+      }
     },
     "plugins": [
       [
