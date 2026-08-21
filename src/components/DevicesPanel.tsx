@@ -100,7 +100,7 @@ export function DevicesPanel() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
-  content: { paddingHorizontal: size.gap, paddingTop: 98, paddingBottom: 320 },
+  content: { paddingHorizontal: size.gap, paddingTop: 104, paddingBottom: 320 },
   reconnect: { marginBottom: size.gap },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   hint: { color: theme.textDim, fontSize: size.fontSm, flex: 1 },

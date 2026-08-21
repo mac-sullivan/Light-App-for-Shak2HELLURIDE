@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
   body: { flex: 1 },
   burst: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50 },
-  topBar: { position: 'absolute', top: PILL_TOP, left: 0, right: 0, zIndex: 10, paddingHorizontal: PILL_SIDE, gap: 8 },
+  topBar: { position: 'absolute', top: PILL_TOP, left: 0, right: 0, zIndex: 10, paddingHorizontal: PILL_SIDE, gap: 16 },
   topStatus: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, alignSelf: 'stretch' },
   pillsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   topLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },

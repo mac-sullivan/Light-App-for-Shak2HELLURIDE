@@ -181,7 +181,7 @@ export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) =
             <Text style={styles.showHint}>Whole-car shows — they override color &amp; effect on every strip.</Text>
             <View style={styles.quickRow}>
               {SHOWS.map((s) => (
-                <BigButton key={s.id} label={s.label} onPress={() => (snapshot.show === s.id ? manager.stopShow() : manager.startShow(s.id))} active={snapshot.show === s.id} tone="accent" small labelSize={size.fontSm} style={styles.showBtn} />
+                <BigButton key={s.id} label={s.label} onPress={() => (snapshot.show === s.id ? manager.stopShow() : manager.startShow(s.id))} active={snapshot.show === s.id} tone="accent" small labelSize={size.fontSm} style={s.id === 'music' ? styles.showBtnFull : styles.showBtn} />
               ))}
             </View>
             <Text style={styles.sliderLabel}>Spin speed · {snapshot.showSpeed.toFixed(1)}s per lap</Text>
@@ -200,7 +200,7 @@ export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) =
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: size.gap, paddingTop: 98, paddingBottom: 40 },
+  content: { paddingHorizontal: size.gap, paddingTop: 104, paddingBottom: 40 },
   hidden: { display: 'none' },
   rowGap: { flexDirection: 'row', gap: size.gap, marginBottom: size.gap },
   selectAll: { marginBottom: size.gap },
@@ -216,5 +216,6 @@ const styles = StyleSheet.create({
   quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
   quick: { flexGrow: 1, minWidth: '30%' },
   showBtn: { width: '31.5%' },
+  showBtnFull: { width: '100%' },
   debug: { color: theme.textDim, textAlign: 'center', marginTop: 12, fontSize: 13, opacity: 0.7 },
 });

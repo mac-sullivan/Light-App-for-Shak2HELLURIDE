@@ -142,11 +142,6 @@ const styles = StyleSheet.create({
   quote: { color: theme.textDim, fontSize: 15, fontStyle: 'italic', lineHeight: 22, textAlign: 'center', maxWidth: 300, opacity: 0.85 },
   ctaGlow: {
     borderRadius: 999,
-    shadowColor: '#7C4DFF',
-    shadowOpacity: 0.6,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 12,
   },
   cta: { paddingVertical: 22, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   ctaText: { color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: 5 },
