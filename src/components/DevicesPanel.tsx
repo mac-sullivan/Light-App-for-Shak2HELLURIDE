@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { size, theme } from '../theme';
 import { useLightManager } from '../hooks/useLightManager';
 import { SectionCard } from './SectionCard';
@@ -17,7 +17,17 @@ export function DevicesPanel() {
   const offline = total - connected;
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView
+      style={styles.screen}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="interactive"
+      automaticallyAdjustKeyboardInsets
+    >
       <BigButton
         label={`↻  Reconnect all  ·  ${connected}/${total}`}
         onPress={() => manager.reconnectAll()}
@@ -84,12 +94,13 @@ export function DevicesPanel() {
         <Backup />
       </SectionCard>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
-  content: { paddingHorizontal: size.gap, paddingTop: 54, paddingBottom: 48 },
+  content: { paddingHorizontal: size.gap, paddingTop: 54, paddingBottom: 320 },
   reconnect: { marginBottom: size.gap },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   hint: { color: theme.textDim, fontSize: size.fontSm, flex: 1 },

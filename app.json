@@ -25,6 +25,7 @@
     },
     "android": {
       "package": "com.artcar.lights",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-foreground.png",
         "backgroundColor": "#0E0E12"
