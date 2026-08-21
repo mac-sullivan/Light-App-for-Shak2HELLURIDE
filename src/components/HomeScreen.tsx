@@ -181,54 +181,57 @@ export function HomeScreen() {
         {tab === 'control' ? <ControlPanel mode={mode} onMode={setMode} /> : tab === 'scenes' ? <ScenesPanel /> : <DevicesPanel />}
       </View>
 
-      {/* Fixed top-left: quick-save heart + Scenes shortcut */}
-      <View style={styles.topLeft}>
-        <Pressable onPress={quickSave} hitSlop={8} style={styles.iconBtn}>
-          <Animated.Text style={[styles.heartIcon, { color: saved ? theme.err : theme.text, transform: [{ scale: heartScale }] }]}>
-            {saved ? '♥' : '♡'}
-          </Animated.Text>
-        </Pressable>
+      {/* Fixed top status bar (edge to edge): heart + scenes · what you're controlling · BT pill */}
+      <View style={styles.topBar} pointerEvents="box-none">
+        <View style={styles.topLeft}>
+          <Pressable onPress={quickSave} hitSlop={8} style={styles.iconBtn}>
+            <Animated.Text style={[styles.heartIcon, { color: saved ? theme.err : theme.text, transform: [{ scale: heartScale }] }]}>
+              {saved ? '♥' : '♡'}
+            </Animated.Text>
+          </Pressable>
+          <Pressable
+            onPress={() => toggleTab('scenes')}
+            hitSlop={8}
+            style={[styles.iconBtn, tab === 'scenes' && styles.iconBtnActive]}
+          >
+            <Ionicons name="albums-outline" size={22} color={tab === 'scenes' ? '#000' : theme.text} />
+          </Pressable>
+        </View>
+
+        {tab === 'control' ? (
+          <Pressable onPress={() => goSection('map')} style={styles.centerStatus} hitSlop={6}>
+            <Ionicons name="locate" size={12} color={theme.textDim} />
+            <Text style={styles.centerText} numberOfLines={1}>
+              Controlling <Text style={styles.targetStrong}>{controlling}</Text>
+            </Text>
+          </Pressable>
+        ) : (
+          <View style={styles.centerStatus} />
+        )}
+
         <Pressable
-          onPress={() => toggleTab('scenes')}
+          onPress={() => toggleTab('devices')}
           hitSlop={8}
-          style={[styles.iconBtn, tab === 'scenes' && styles.iconBtnActive]}
+          style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}
         >
-          <Ionicons name="albums-outline" size={22} color={tab === 'scenes' ? '#000' : theme.text} />
+          <View style={[styles.pill, { borderColor: summaryColor }]}>
+            <Ionicons name="bluetooth" size={17} color={summaryColor} />
+            <Text style={[styles.count, { color: summaryColor }]}>
+              {connected}/{total}
+            </Text>
+            {snapshot.scanning ? <Text style={styles.scan}>⟳</Text> : null}
+          </View>
         </Pressable>
       </View>
 
-      {/* Fixed top-right: connection pill — tap to open Devices */}
-      <Pressable
-        onPress={() => toggleTab('devices')}
-        hitSlop={8}
-        style={({ pressed }) => [styles.statusPill, { opacity: pressed ? 0.75 : 1 }]}
-      >
-        <View style={[styles.pill, { borderColor: summaryColor }]}>
-          <Ionicons name="bluetooth" size={17} color={summaryColor} />
-          <Text style={[styles.count, { color: summaryColor }]}>
-            {connected}/{total}
-          </Text>
-          {snapshot.scanning ? <Text style={styles.scan}>⟳</Text> : null}
-        </View>
-      </Pressable>
-
       {/* Bottom control bar — compact power toggle + the main sections, by the thumb */}
       <View style={styles.tabs}>
-        {tab === 'control' ? (
-          <Pressable onPress={() => goSection('map')} style={styles.targetLine} hitSlop={6}>
-            <Ionicons name="locate" size={13} color={theme.textDim} />
-            <Text style={styles.targetText}>
-              Controlling <Text style={styles.targetStrong}>{controlling}</Text>
-              {mode === 'shows' ? '' : '  ›  tap to change'}
-            </Text>
-          </Pressable>
-        ) : null}
         <View style={styles.bottomRow}>
           <Pressable
             onPress={() => { Haptics.selectionAsync().catch(() => {}); manager.masterPower(!allOn); }}
             style={[styles.powerBtn, allOn ? styles.powerOn : styles.powerOff]}
           >
-            <Ionicons name="power" size={26} color={allOn ? '#000' : theme.textDim} />
+            <Ionicons name="power" size={28} color={allOn ? '#000' : theme.textDim} />
           </Pressable>
           <View style={styles.flex}>
             <SectionSwitcher current={tab === 'control' ? mode : null} onSelect={goSection} />
@@ -245,7 +248,10 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
   body: { flex: 1 },
   burst: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50 },
-  topLeft: { position: 'absolute', top: PILL_TOP, left: PILL_SIDE, zIndex: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  topBar: { position: 'absolute', top: PILL_TOP, left: 0, right: 0, zIndex: 10, flexDirection: 'row', alignItems: 'center', paddingHorizontal: PILL_SIDE, gap: 8 },
+  topLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  centerStatus: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, marginHorizontal: 6 },
+  centerText: { color: theme.textDim, fontSize: 13, fontWeight: '700', flexShrink: 1 },
   heartIcon: { fontSize: 24, fontWeight: '900', marginTop: -2 },
   iconBtn: {
     width: 44,
@@ -258,7 +264,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconBtnActive: { backgroundColor: theme.accent, borderColor: theme.accent },
-  statusPill: { position: 'absolute', top: PILL_TOP, right: PILL_SIDE, zIndex: 10 },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -269,7 +274,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 40,
   },
-  dot: { width: 12, height: 12, borderRadius: 6 },
   count: { fontSize: size.fontMd, fontWeight: '900' },
   scan: { color: theme.warn, fontSize: 15, fontWeight: '900' },
   tabs: {
@@ -281,17 +285,15 @@ const styles = StyleSheet.create({
     borderTopColor: theme.border,
     backgroundColor: theme.surface,
   },
-  targetLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  targetText: { color: theme.textDim, fontSize: 13, fontWeight: '700' },
   targetStrong: { color: theme.text, fontWeight: '800' },
   bottomRow: { flexDirection: 'row', gap: 8, alignItems: 'stretch' },
-  powerBtn: { width: 62, borderRadius: 14, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  powerBtn: { width: 68, borderRadius: 14, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   powerOn: { backgroundColor: theme.ok, borderColor: theme.ok },
   powerOff: { backgroundColor: theme.surfaceHi, borderColor: theme.border },
   flex: { flex: 1 },
   seg: { flexDirection: 'row', backgroundColor: theme.surfaceHi, borderRadius: 14, padding: 4, gap: 4 },
-  segItem: { flex: 1, paddingVertical: 15, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  segItem: { flex: 1, paddingVertical: 18, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   segItemActive: { backgroundColor: theme.accent },
-  segText: { color: theme.textDim, fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },
+  segText: { color: theme.textDim, fontSize: 17, fontWeight: '800', letterSpacing: 0.2 },
   segTextActive: { color: '#000' },
 });
