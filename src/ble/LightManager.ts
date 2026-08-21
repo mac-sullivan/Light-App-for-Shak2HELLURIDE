@@ -799,6 +799,38 @@ export class LightManager {
     } else if (name === 'sunset') {
       const base = (20 + 25 * Math.sin(tick * 0.06) + 360) % 360;
       t.forEach((d, i) => sends.push(this.writeTo(d, SP110E.color(hsvToRgb((base + i * 6) % 360, 1, 1))).catch(() => {})));
+    } else if (name === 'ember') {
+      // Glowing coals: mostly deep red flicker with the occasional orange flare.
+      t.forEach((d) => {
+        const flare = Math.random() > 0.86;
+        const r = 150 + Math.floor(Math.random() * 105);
+        const g = flare ? 45 + Math.floor(Math.random() * 70) : Math.floor(Math.random() * 16);
+        sends.push(this.writeTo(d, SP110E.color({ r, g, b: 0 })).catch(() => {}));
+      });
+    } else if (name === 'lava') {
+      // Slow molten red-orange flow undulating around the car.
+      t.forEach((d, i) => {
+        const phase = tick * 0.06 + i * 0.6;
+        const hue = (10 + 12 * Math.sin(phase) + 360) % 360;
+        const v = Math.max(0.2, 0.55 + 0.45 * Math.sin(phase * 0.7));
+        sends.push(this.writeTo(d, SP110E.color(hsvToRgb(hue, 1, v))).catch(() => {}));
+      });
+    } else if (name === 'heartbeat') {
+      // Whole car thumps red in a lub-dub rhythm.
+      const beat = 9;
+      const p = (tick % beat) / beat;
+      const bump = (c: number, w: number) => Math.exp(-((p - c) * (p - c)) / (2 * w * w));
+      const env = Math.min(1, bump(0.02, 0.05) + 0.75 * bump(0.2, 0.05));
+      const c = hsvToRgb(0, 1, 0.08 + 0.92 * env);
+      t.forEach((d) => sends.push(this.writeTo(d, SP110E.color(c)).catch(() => {})));
+    } else if (name === 'meteor') {
+      // Red streak with a long fading tail chasing around the strips.
+      const band = tick % n;
+      t.forEach((d, i) => {
+        const behind = (band - i + n) % n;
+        const v = behind === 0 ? 1 : Math.max(0.03, Math.pow(0.55, behind));
+        sends.push(this.writeTo(d, SP110E.color(hsvToRgb(0, 1, v))).catch(() => {}));
+      });
     }
     await Promise.allSettled(sends);
   }
