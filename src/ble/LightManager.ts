@@ -672,7 +672,7 @@ export class LightManager {
           .catch(() => {})
       )
     );
-    const interval = name === 'strobe' ? 110 : name === 'spin' ? 120 : 160;
+    const interval = name === 'strobe' ? 110 : name === 'spin' ? 120 : name === 'candle' ? 220 : 160;
     this.showIntervalMs = interval;
     this.showTimer = setInterval(() => void this.showStep(), interval);
     this.emit();
@@ -830,6 +830,18 @@ export class LightManager {
         const behind = (band - i + n) % n;
         const v = behind === 0 ? 1 : Math.max(0.03, Math.pow(0.55, behind));
         sends.push(this.writeTo(d, SP110E.color(hsvToRgb(0, 1, v))).catch(() => {}));
+      });
+    } else if (name === 'siren') {
+      // Emergency red wig-wag: the two halves of the car alternate bright/dim red.
+      const on = { r: 255, g: 0, b: 0 };
+      const dim = { r: 26, g: 0, b: 0 };
+      const flip = Math.floor(tick / 2) % 2 === 0;
+      t.forEach((d, i) => sends.push(this.writeTo(d, SP110E.color((i < n / 2) === flip ? on : dim)).catch(() => {})));
+    } else if (name === 'candle') {
+      // Gentle warm amber flicker, like candlelight.
+      t.forEach((d) => {
+        const v = 0.72 + 0.28 * Math.random();
+        sends.push(this.writeTo(d, SP110E.color({ r: Math.round(255 * v), g: Math.round(120 * v), b: Math.round(24 * v) })).catch(() => {}));
       });
     }
     await Promise.allSettled(sends);

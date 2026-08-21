@@ -18,26 +18,30 @@ import { Groups } from './Groups';
 import { AdvancedSetup } from './AdvancedSetup';
 import type { DeviceEntry } from '../ble/types';
 
+// Ordered by vibe with the crowd-pleasers up top: hot/red first, then colorful,
+// then the calm ones, then party/alarm, then music.
 const SHOWS: { id: string; label: string }[] = [
-  { id: 'spin', label: 'Spin' },
-  { id: 'rainbow', label: 'Rainbow' },
-  { id: 'sweep', label: 'Sweep' },
-  { id: 'wave', label: 'Wave' },
-  { id: 'chase', label: 'Chase' },
-  { id: 'comet', label: 'Comet' },
-  { id: 'pulse', label: 'Pulse' },
-  { id: 'breathe', label: 'Breathe' },
   { id: 'fire', label: 'Fire' },
   { id: 'ember', label: 'Ember' },
   { id: 'lava', label: 'Lava' },
   { id: 'heartbeat', label: 'Heartbeat' },
   { id: 'meteor', label: 'Meteor' },
-  { id: 'twinkle', label: 'Twinkle' },
+  { id: 'siren', label: 'Siren' },
+  { id: 'spin', label: 'Spin' },
+  { id: 'rainbow', label: 'Rainbow' },
+  { id: 'sweep', label: 'Sweep' },
+  { id: 'chase', label: 'Chase' },
+  { id: 'comet', label: 'Comet' },
+  { id: 'wave', label: 'Wave' },
   { id: 'confetti', label: 'Confetti' },
   { id: 'alternate', label: 'Alternate' },
+  { id: 'pulse', label: 'Pulse' },
+  { id: 'breathe', label: 'Breathe' },
+  { id: 'candle', label: 'Candle' },
+  { id: 'sunset', label: 'Sunset' },
+  { id: 'twinkle', label: 'Twinkle' },
   { id: 'police', label: 'Police' },
   { id: 'strobe', label: 'Strobe' },
-  { id: 'sunset', label: 'Sunset' },
   { id: 'music', label: 'Music' },
 ];
 
