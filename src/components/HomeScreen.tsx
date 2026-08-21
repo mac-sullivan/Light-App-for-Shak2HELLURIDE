@@ -22,28 +22,54 @@ const SECTIONS: [Mode, string][] = [
   ['shows', 'Shows'],
 ];
 
-type Heart = { id: number; x: number; sizePx: number; drift: number; rot: number; delay: number; duration: number; emoji: string; anim: Animated.Value };
-const HEART_EMOJI = ['❤️', '💛', '🧡', '💜', '💖', '💗'];
+type Heart = {
+  id: number; x: number; sizePx: number; delay: number; duration: number; emoji: string;
+  anim: Animated.Value; jitterX: number[]; flicker: number[]; stretch: number[];
+};
+const HEART_EMOJI = ['💜', '💖', '💗', '💝', '💕', '🩷']; // pink & purple only
+const STEPS = Array.from({ length: 14 }, (_, i) => i / 13); // keyframe positions 0..1
 
-// Full-screen shower of hearts raining down — fired when the quick-save heart is tapped.
+function makeHeart(id: number, width: number): Heart {
+  const drift = (Math.random() * 2 - 1) * 42;
+  // Horizontal path with a glitchy stutter (random jumps) layered over a gentle sway.
+  const jitterX = STEPS.map((s, idx) => {
+    const sway = drift * Math.sin(s * Math.PI);
+    const jump = idx === 0 || idx === STEPS.length - 1 ? 0 : (Math.random() * 2 - 1) * 18;
+    return sway + jump;
+  });
+  // Flicker on/off like a glitch, fading out over the last stretch of the fall.
+  const flicker = STEPS.map((s, idx) => {
+    if (idx === 0) return 0;
+    if (s > 0.86) return Math.max(0, 1 - (s - 0.86) / 0.14);
+    return Math.random() < 0.32 ? 0.15 : 1;
+  });
+  // Occasional horizontal stretch for a digital-glitch feel.
+  const stretch = STEPS.map(() => {
+    const r = Math.random();
+    return r < 0.15 ? 0.65 : r > 0.85 ? 1.35 : 1;
+  });
+  return {
+    id,
+    x: Math.random() * width,
+    sizePx: 18 + Math.random() * 30,
+    delay: Math.random() * 500,
+    duration: 1600 + Math.random() * 1500,
+    emoji: HEART_EMOJI[Math.floor(Math.random() * HEART_EMOJI.length)]!,
+    anim: new Animated.Value(0),
+    jitterX,
+    flicker,
+    stretch,
+  };
+}
+
+// Full-screen shower of pink/purple hearts glitching their way down — fired on quick-save.
 function HeartsBurst({ fireKey }: { fireKey: number }) {
   const { width, height } = useWindowDimensions();
   const [hearts, setHearts] = useState<Heart[]>([]);
 
   useEffect(() => {
     if (fireKey === 0) return;
-    const n = 18;
-    const items: Heart[] = Array.from({ length: n }).map((_, i) => ({
-      id: fireKey * 100 + i,
-      x: Math.random() * width,
-      sizePx: 20 + Math.random() * 28,
-      drift: (Math.random() * 2 - 1) * 70,
-      rot: (Math.random() * 2 - 1) * 45,
-      delay: Math.random() * 400,
-      duration: 1500 + Math.random() * 1300,
-      emoji: HEART_EMOJI[Math.floor(Math.random() * HEART_EMOJI.length)]!,
-      anim: new Animated.Value(0),
-    }));
+    const items = Array.from({ length: 36 }, (_, i) => makeHeart(fireKey * 100 + i, width));
     setHearts(items);
     Animated.parallel(
       items.map((h) =>
@@ -57,13 +83,13 @@ function HeartsBurst({ fireKey }: { fireKey: number }) {
     <View pointerEvents="none" style={styles.burst}>
       {hearts.map((h) => {
         const translateY = h.anim.interpolate({ inputRange: [0, 1], outputRange: [-60, height + 60] });
-        const translateX = h.anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, h.drift, 0] });
-        const rotate = h.anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', `${h.rot}deg`] });
-        const opacity = h.anim.interpolate({ inputRange: [0, 0.08, 0.85, 1], outputRange: [0, 1, 1, 0] });
+        const translateX = h.anim.interpolate({ inputRange: STEPS, outputRange: h.jitterX });
+        const scaleX = h.anim.interpolate({ inputRange: STEPS, outputRange: h.stretch });
+        const opacity = h.anim.interpolate({ inputRange: STEPS, outputRange: h.flicker });
         return (
           <Animated.Text
             key={h.id}
-            style={{ position: 'absolute', left: h.x, fontSize: h.sizePx, transform: [{ translateY }, { translateX }, { rotate }], opacity }}
+            style={{ position: 'absolute', left: h.x, fontSize: h.sizePx, transform: [{ translateY }, { translateX }, { scaleX }], opacity }}
           >
             {h.emoji}
           </Animated.Text>
