@@ -14,10 +14,10 @@ type Slot = { name: string; left: number; top: number; w: number; h: number; ver
 const SLOTS: Slot[] = [
   { name: 'Front Siding', left: 26, top: 3, w: 48, h: 8 },
   { name: 'Front Skirt', left: 26, top: 12, w: 48, h: 8 },
-  { name: 'Left Siding', left: 3, top: 22, w: 8, h: 56, vertical: true },
-  { name: 'Left Skirt', left: 13, top: 22, w: 8, h: 56, vertical: true },
-  { name: 'Right Skirt', left: 79, top: 22, w: 8, h: 56, vertical: true },
-  { name: 'Right Siding', left: 89, top: 22, w: 8, h: 56, vertical: true },
+  { name: 'Left Skirt', left: 3, top: 22, w: 8, h: 56, vertical: true },
+  { name: 'Left Siding', left: 13, top: 22, w: 8, h: 56, vertical: true },
+  { name: 'Right Siding', left: 79, top: 22, w: 8, h: 56, vertical: true },
+  { name: 'Right Skirt', left: 89, top: 22, w: 8, h: 56, vertical: true },
   { name: 'Balcony', left: 38, top: 67, w: 28, h: 11 },
   // rear cluster: just below the rails/balcony, flush to the bottom padding
   { name: 'ShakAssist', left: 8, top: 83, w: 28, h: 14 },
