@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { HapticSlider as Slider } from './HapticSlider';
 import { size, theme } from '../theme';
 import { SEQUENCES, type RGB } from '../protocol';
@@ -37,16 +36,14 @@ const SHOWS: { id: string; label: string }[] = [
   { id: 'music', label: 'Music 🎵' },
 ];
 
-type Mode = 'color' | 'effects' | 'shows';
+export type Mode = 'color' | 'effects' | 'shows';
 
-export function ControlPanel() {
+export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) => void }) {
   const { snapshot, manager } = useLightManager();
   const { groups, saveGroup, deleteGroup } = useGroups();
   const { scenes, applyScene } = useScenes();
   const { assign, setSlot } = useMapAssign();
-  const scrollRef = useRef<ScrollView>(null);
 
-  const [mode, setMode] = useState<Mode>('color');
   const [color, setColor] = useState<RGB>({ r: 255, g: 0, b: 0 });
   const [brightness, setBrightness] = useState(255);
   const [white, setWhite] = useState(0);
@@ -78,8 +75,8 @@ export function ControlPanel() {
       setWhite(r.white);
       setSpeed(r.speed);
       setEffect(r.mode === 'effect' ? r.effect : undefined);
-      if (r.mode === 'effect' || r.mode === 'auto') setMode('effects');
-      else if (r.mode === 'solid') setMode('color');
+      if (r.mode === 'effect' || r.mode === 'auto') onMode('effects');
+      else if (r.mode === 'solid') onMode('color');
     }
   }, [selKey]);
 
@@ -103,30 +100,7 @@ export function ControlPanel() {
 
   return (
     <View style={styles.screen}>
-      {/* Pinned header: subtle wordmark (scroll-to-top) + slim section switcher */}
-      <View style={styles.header}>
-        <Pressable onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })} hitSlop={8}>
-          <Text style={styles.logo}>shak to hell u ride</Text>
-        </Pressable>
-        <View style={styles.seg}>
-          {(['color', 'effects', 'shows'] as const).map((m) => {
-            const active = mode === m;
-            return (
-              <Pressable
-                key={m}
-                onPress={() => { Haptics.selectionAsync().catch(() => {}); setMode(m); }}
-                style={[styles.segItem, active && styles.segItemActive]}
-              >
-                <Text style={[styles.segText, active && styles.segTextActive]}>
-                  {m === 'color' ? 'Color' : m === 'effects' ? 'Effects' : 'Shows'}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
-
-      <ScrollView ref={scrollRef} style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {/* Section content — the thing you tweak most, up top */}
         {mode === 'color' ? (
           <SectionCard title={`Color · ${targetLabel}`}>
@@ -214,15 +188,8 @@ export function ControlPanel() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
-  header: { paddingTop: 48, paddingHorizontal: size.gap, paddingBottom: 10, backgroundColor: theme.bg, borderBottomWidth: 1, borderBottomColor: theme.border },
-  logo: { color: theme.textDim, fontSize: 11, fontWeight: '700', letterSpacing: 4, textAlign: 'center', marginBottom: 10, textTransform: 'uppercase', opacity: 0.6 },
-  seg: { flexDirection: 'row', backgroundColor: theme.surfaceHi, borderRadius: 12, padding: 4, gap: 4 },
-  segItem: { flex: 1, paddingVertical: 9, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  segItemActive: { backgroundColor: theme.accent },
-  segText: { color: theme.textDim, fontSize: 15, fontWeight: '800', letterSpacing: 0.3 },
-  segTextActive: { color: '#000' },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: size.gap, paddingTop: size.gap, paddingBottom: 48 },
+  content: { paddingHorizontal: size.gap, paddingTop: 54, paddingBottom: 40 },
   rowGap: { flexDirection: 'row', gap: size.gap, marginBottom: size.gap },
   selectAll: { marginBottom: size.gap },
   stopShow: { marginTop: size.gap },

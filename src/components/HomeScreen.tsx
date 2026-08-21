@@ -5,12 +5,32 @@ import * as Haptics from 'expo-haptics';
 import { size, theme } from '../theme';
 import { useLightManager } from '../hooks/useLightManager';
 import { useScenes } from '../hooks/useScenes';
-import { ControlPanel } from './ControlPanel';
+import { ControlPanel, type Mode } from './ControlPanel';
 import { ScenesPanel } from './ScenesPanel';
 import { DevicesPanel } from './DevicesPanel';
 
 type Tab = 'control' | 'scenes' | 'devices';
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
+
+function SectionSwitcher({ mode, onMode }: { mode: Mode; onMode: (m: Mode) => void }) {
+  const items: [Mode, string][] = [['color', 'Color'], ['effects', 'Effects'], ['shows', 'Shows']];
+  return (
+    <View style={styles.seg}>
+      {items.map(([m, label]) => {
+        const active = mode === m;
+        return (
+          <Pressable
+            key={m}
+            onPress={() => { Haptics.selectionAsync().catch(() => {}); onMode(m); }}
+            style={[styles.segItem, active && styles.segItemActive]}
+          >
+            <Text style={[styles.segText, active && styles.segTextActive]}>{label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
 
 function NavTab({ icon, label, active, onPress }: { icon: IconName; label: string; active: boolean; onPress: () => void }) {
   return (
@@ -28,6 +48,7 @@ export function HomeScreen() {
   const { snapshot } = useLightManager();
   const { scenes, saveCurrent } = useScenes();
   const [tab, setTab] = useState<Tab>('control');
+  const [mode, setMode] = useState<Mode>('color');
   const [saved, setSaved] = useState(false);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -51,7 +72,7 @@ export function HomeScreen() {
   return (
     <View style={styles.root}>
       <View style={styles.body}>
-        {tab === 'control' ? <ControlPanel /> : tab === 'scenes' ? <ScenesPanel /> : <DevicesPanel />}
+        {tab === 'control' ? <ControlPanel mode={mode} onMode={setMode} /> : tab === 'scenes' ? <ScenesPanel /> : <DevicesPanel />}
       </View>
 
       {/* Fixed heart quick-save, pinned to the top-left corner */}
@@ -71,8 +92,9 @@ export function HomeScreen() {
         </View>
       </View>
 
-      {/* Bottom nav — Control centered as home */}
+      {/* Bottom bars — the most-tapped switcher sits right above the nav, by the thumb */}
       <View style={styles.tabs}>
+        {tab === 'control' ? <SectionSwitcher mode={mode} onMode={setMode} /> : null}
         <View style={styles.tabRow}>
           <NavTab icon="bookmark" label="Scenes" active={tab === 'scenes'} onPress={() => setTab('scenes')} />
           <NavTab icon="options" label="Control" active={tab === 'control'} onPress={() => setTab('control')} />
@@ -128,6 +150,11 @@ const styles = StyleSheet.create({
   },
   tabRow: { flexDirection: 'row', gap: size.gap },
   flex: { flex: 1 },
+  seg: { flexDirection: 'row', backgroundColor: theme.surfaceHi, borderRadius: 14, padding: 4, gap: 4 },
+  segItem: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  segItemActive: { backgroundColor: theme.accent },
+  segText: { color: theme.textDim, fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
+  segTextActive: { color: '#000' },
   navTab: {
     flex: 1,
     alignItems: 'center',

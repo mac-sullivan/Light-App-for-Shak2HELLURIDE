@@ -60,8 +60,12 @@ export function EffectPad({
         ))}
       </View>
 
-      <Pressable onPress={onToggleAll} style={styles.toggle} hitSlop={8}>
-        <Text style={styles.toggleText}>All effects (1–120)</Text>
+      <Pressable
+        onPress={onToggleAll}
+        style={({ pressed }) => [styles.toggle, { opacity: pressed ? 0.75 : 1 }]}
+        hitSlop={8}
+      >
+        <Text style={styles.toggleText}>{showAll ? 'Hide full list' : 'Browse all 120 effects'}</Text>
         <Text style={styles.toggleChev}>{showAll ? '▲' : '▼'}</Text>
       </Pressable>
 
@@ -105,7 +109,18 @@ const styles = StyleSheet.create({
   cellName: { color: theme.text, fontSize: size.fontSm, fontWeight: '700', textAlign: 'center' },
   cellNum: { color: theme.textDim, fontSize: 12, marginTop: 2 },
   active: { borderColor: theme.accent, backgroundColor: theme.accentDim },
-  toggle: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16 },
+  toggle: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 14,
+    minHeight: size.touchMd,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: theme.accent,
+    backgroundColor: theme.accentDim,
+  },
   toggleText: { color: theme.accent, fontSize: size.fontMd, fontWeight: '800' },
-  toggleChev: { color: theme.accent, fontSize: size.fontMd, fontWeight: '800' },
+  toggleChev: { color: theme.accent, fontSize: 14, fontWeight: '800' },
 });
