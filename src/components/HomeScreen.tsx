@@ -8,7 +8,6 @@ import { useScenes } from '../hooks/useScenes';
 import { ControlPanel, type Mode } from './ControlPanel';
 import { ScenesPanel } from './ScenesPanel';
 import { DevicesPanel } from './DevicesPanel';
-import { BigButton } from './BigButton';
 
 type Tab = 'control' | 'scenes' | 'devices';
 
@@ -110,15 +109,19 @@ export function HomeScreen() {
         </View>
       </Pressable>
 
-      {/* Bottom control bar — master power + the main sections, right by the thumb */}
+      {/* Bottom control bar — compact power toggle + the main sections, by the thumb */}
       <View style={styles.tabs}>
-        {tab === 'control' ? (
-          <View style={styles.powerRow}>
-            <BigButton label="ON" onPress={() => manager.masterPower(true)} tone="on" active={allOn} small style={styles.flex} />
-            <BigButton label="OFF" onPress={() => manager.masterPower(false)} tone="off" small style={styles.flex} />
+        <View style={styles.bottomRow}>
+          <Pressable
+            onPress={() => { Haptics.selectionAsync().catch(() => {}); manager.masterPower(!allOn); }}
+            style={[styles.powerBtn, allOn ? styles.powerOn : styles.powerOff]}
+          >
+            <Ionicons name="power" size={24} color={allOn ? '#000' : theme.textDim} />
+          </Pressable>
+          <View style={styles.flex}>
+            <SectionSwitcher current={tab === 'control' ? mode : null} onSelect={goSection} />
           </View>
-        ) : null}
-        <SectionSwitcher current={tab === 'control' ? mode : null} onSelect={goSection} />
+        </View>
       </View>
     </View>
   );
@@ -175,7 +178,10 @@ const styles = StyleSheet.create({
     borderTopColor: theme.border,
     backgroundColor: theme.surface,
   },
-  powerRow: { flexDirection: 'row', gap: size.gap },
+  bottomRow: { flexDirection: 'row', gap: 8, alignItems: 'stretch' },
+  powerBtn: { width: 58, borderRadius: 14, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  powerOn: { backgroundColor: theme.ok, borderColor: theme.ok },
+  powerOff: { backgroundColor: theme.surfaceHi, borderColor: theme.border },
   flex: { flex: 1 },
   seg: { flexDirection: 'row', backgroundColor: theme.surfaceHi, borderRadius: 14, padding: 4, gap: 4 },
   segItem: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
