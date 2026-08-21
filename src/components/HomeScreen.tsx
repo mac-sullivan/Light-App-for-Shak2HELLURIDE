@@ -4,6 +4,8 @@ import { Animated, Easing, Platform, Pressable, StyleSheet, Text, useWindowDimen
 // Breathing room above the top pills. iOS sits below the safe-area notch inset;
 // Android sits below its status bar (root already pads for that) — both get space.
 const PILL_TOP = Platform.OS === 'ios' ? 12 : 6;
+// Side inset so the corner pills aren't jammed against the screen edges.
+const PILL_SIDE = 18;
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { size, theme } from '../theme';
@@ -243,7 +245,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
   body: { flex: 1 },
   burst: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50 },
-  topLeft: { position: 'absolute', top: PILL_TOP, left: size.gap, zIndex: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  topLeft: { position: 'absolute', top: PILL_TOP, left: PILL_SIDE, zIndex: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
   heartIcon: { fontSize: 24, fontWeight: '900', marginTop: -2 },
   iconBtn: {
     width: 44,
@@ -256,7 +258,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconBtnActive: { backgroundColor: theme.accent, borderColor: theme.accent },
-  statusPill: { position: 'absolute', top: PILL_TOP, right: size.gap, zIndex: 10 },
+  statusPill: { position: 'absolute', top: PILL_TOP, right: PILL_SIDE, zIndex: 10 },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
