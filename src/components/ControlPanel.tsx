@@ -141,7 +141,11 @@ export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) =
               {showAdvanced ? <AdvancedSetup targetLabel={targetLabel} onIcModel={(i) => manager.masterIcModel(i)} onPixels={(n) => manager.masterPixels(n)} /> : null}
             </SectionCard>
           </>
-        ) : mode === 'color' ? (
+        ) : null}
+
+        {/* Color/Effects/Shows stay mounted and just toggle visibility, so their
+            sliders never re-mount and animate the thumb up from zero. */}
+        <View style={mode === 'color' ? undefined : styles.hidden}>
           <SectionCard title={`Color · ${targetLabel}`}>
             <ColorPicker key={selKey} color={color} onChange={(c) => { setColor(c); sendColor(c); }} onComplete={(c) => manager.masterColor(c)} />
             {brightnessSlider}
@@ -155,7 +159,9 @@ export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) =
               ))}
             </View>
           </SectionCard>
-        ) : mode === 'effects' ? (
+        </View>
+
+        <View style={mode === 'effects' ? undefined : styles.hidden}>
           <SectionCard title={`Effects · ${targetLabel}`}>
             <BigButton label="Auto cycle (all effects)" onPress={() => { setEffect(0); manager.masterAutoCycle(); }} active={rep?.mode === 'auto'} tone="accent" small style={styles.autoBtn} />
             {brightnessSlider}
@@ -164,7 +170,9 @@ export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) =
               onValueChange={(v) => { setSpeed(v); sendSpeed(v); }} onSlidingComplete={(v) => manager.masterSpeed(v)} style={styles.slider} />
             <EffectPad selected={effect} onPick={(m) => { setEffect(m); manager.masterEffect(m); }} scenes={scenes} onApplyScene={applyScene} />
           </SectionCard>
-        ) : (
+        </View>
+
+        <View style={mode === 'shows' ? undefined : styles.hidden}>
           <SectionCard title="Shows — whole shack">
             <Text style={styles.showHint}>Whole-car shows — they override color &amp; effect on every strip.</Text>
             <View style={styles.quickRow}>
@@ -177,7 +185,7 @@ export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) =
               onValueChange={(v) => manager.setSpinSpeed(v)} style={styles.slider} />
             {snapshot.show ? <BigButton label="Stop show" onPress={() => manager.stopShow()} tone="off" active small style={styles.stopShow} /> : null}
           </SectionCard>
-        )}
+        </View>
 
         {snapshot.lastWrite ? <Text style={styles.debug}>last command: {snapshot.lastWrite}</Text> : null}
       </ScrollView>
@@ -189,6 +197,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
   scroll: { flex: 1 },
   content: { paddingHorizontal: size.gap, paddingTop: 54, paddingBottom: 40 },
+  hidden: { display: 'none' },
   rowGap: { flexDirection: 'row', gap: size.gap, marginBottom: size.gap },
   selectAll: { marginBottom: size.gap },
   stopShow: { marginTop: size.gap },

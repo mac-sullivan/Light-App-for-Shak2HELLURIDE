@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
-// Top pills ride to the very top on iOS (notch handled by the safe area); Android
-// keeps a small offset below its status bar.
-const PILL_TOP = Platform.OS === 'ios' ? 0 : 6;
+// Breathing room above the top pills. iOS sits below the safe-area notch inset;
+// Android sits below its status bar (root already pads for that) — both get space.
+const PILL_TOP = Platform.OS === 'ios' ? 12 : 6;
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { size, theme } from '../theme';
@@ -200,7 +200,7 @@ export function HomeScreen() {
             onPress={() => { Haptics.selectionAsync().catch(() => {}); manager.masterPower(!allOn); }}
             style={[styles.powerBtn, allOn ? styles.powerOn : styles.powerOff]}
           >
-            <Ionicons name="power" size={24} color={allOn ? '#000' : theme.textDim} />
+            <Ionicons name="power" size={26} color={allOn ? '#000' : theme.textDim} />
           </Pressable>
           <View style={styles.flex}>
             <SectionSwitcher current={tab === 'control' ? mode : null} onSelect={goSection} />
@@ -257,13 +257,13 @@ const styles = StyleSheet.create({
   targetText: { color: theme.textDim, fontSize: 13, fontWeight: '700' },
   targetStrong: { color: theme.text, fontWeight: '800' },
   bottomRow: { flexDirection: 'row', gap: 8, alignItems: 'stretch' },
-  powerBtn: { width: 58, borderRadius: 14, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  powerBtn: { width: 62, borderRadius: 14, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   powerOn: { backgroundColor: theme.ok, borderColor: theme.ok },
   powerOff: { backgroundColor: theme.surfaceHi, borderColor: theme.border },
   flex: { flex: 1 },
   seg: { flexDirection: 'row', backgroundColor: theme.surfaceHi, borderRadius: 14, padding: 4, gap: 4 },
-  segItem: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  segItem: { flex: 1, paddingVertical: 15, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   segItemActive: { backgroundColor: theme.accent },
-  segText: { color: theme.textDim, fontSize: 15, fontWeight: '800', letterSpacing: 0.2 },
+  segText: { color: theme.textDim, fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },
   segTextActive: { color: '#000' },
 });
