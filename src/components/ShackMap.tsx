@@ -11,13 +11,14 @@ type Slot = { name: string; left: number; top: number; w: number; h: number; ver
 const SLOTS: Slot[] = [
   { name: 'Front Siding', left: 26, top: 2, w: 48, h: 8 },
   { name: 'Front Skirt', left: 26, top: 11, w: 48, h: 8 },
-  { name: 'Left Siding', left: 3, top: 22, w: 8, h: 62, vertical: true },
-  { name: 'Left Skirt', left: 13, top: 22, w: 8, h: 62, vertical: true },
-  { name: 'Right Skirt', left: 79, top: 22, w: 8, h: 62, vertical: true },
-  { name: 'Right Siding', left: 89, top: 22, w: 8, h: 62, vertical: true },
-  { name: 'Balcony', left: 39, top: 30, w: 22, h: 12 },
-  { name: 'ShakAssist', left: 25, top: 58, w: 22, h: 16 },
-  { name: 'Back Stairs', left: 51, top: 60, w: 24, h: 20 },
+  { name: 'Left Siding', left: 3, top: 22, w: 8, h: 64, vertical: true },
+  { name: 'Left Skirt', left: 13, top: 22, w: 8, h: 64, vertical: true },
+  { name: 'Right Skirt', left: 79, top: 22, w: 8, h: 64, vertical: true },
+  { name: 'Right Siding', left: 89, top: 22, w: 8, h: 64, vertical: true },
+  // interior, top -> bottom: Balcony (center), ShakAssist (left), Back Stairs (center bottom)
+  { name: 'Balcony', left: 39, top: 26, w: 22, h: 12 },
+  { name: 'ShakAssist', left: 25, top: 45, w: 24, h: 15 },
+  { name: 'Back Stairs', left: 37, top: 68, w: 26, h: 16 },
 ];
 
 const norm = (s: string) => s.toLowerCase().replace(/\s+/g, '');

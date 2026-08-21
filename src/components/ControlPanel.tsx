@@ -12,6 +12,7 @@ import { SectionCard } from './SectionCard';
 import { ColorPicker } from './ColorPicker';
 import { EffectPad } from './EffectPad';
 import { SelectionChips } from './SelectionChips';
+import { ShackMap } from './ShackMap';
 import { Groups } from './Groups';
 import { AdvancedSetup } from './AdvancedSetup';
 
@@ -26,7 +27,7 @@ export function ControlPanel() {
   const [effect, setEffect] = useState<number | undefined>(undefined);
   const [speed, setSpeed] = useState(180);
   const [showAllEffects, setShowAllEffects] = useState(false);
-  const [showStrips, setShowStrips] = useState(false);
+  const [pickMode, setPickMode] = useState<'map' | 'list'>('map');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const allSelected = snapshot.selected.length === 0;
@@ -46,13 +47,16 @@ export function ControlPanel() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       {/* What am I controlling */}
       <SectionCard title={`Controlling · ${targetLabel}`}>
+        <BigButton label="Select all strips" onPress={() => manager.selectAll()} active={allSelected} tone="accent" small style={styles.selectAll} />
         <View style={styles.rowGap}>
-          <BigButton label="All strips" onPress={() => manager.selectAll()} active={allSelected} tone="accent" small style={styles.flex} />
-          <BigButton label={showStrips ? 'Hide strips' : 'Pick strips'} onPress={() => setShowStrips((s) => !s)} active={showStrips} tone="accent" small style={styles.flex} />
+          <BigButton label="Map" onPress={() => setPickMode('map')} active={pickMode === 'map'} tone="accent" small style={styles.flex} />
+          <BigButton label="List" onPress={() => setPickMode('list')} active={pickMode === 'list'} tone="accent" small style={styles.flex} />
         </View>
-        {showStrips ? (
+        {pickMode === 'map' ? (
+          <ShackMap devices={snapshot.devices} selected={snapshot.selected} onToggle={(name) => manager.toggleSelect(name)} />
+        ) : (
           <SelectionChips devices={snapshot.devices} selected={snapshot.selected} onToggle={(name) => manager.toggleSelect(name)} />
-        ) : null}
+        )}
         <Groups
           groups={groups}
           selected={snapshot.selected}
@@ -200,6 +204,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
   content: { paddingHorizontal: size.gap, paddingTop: 54, paddingBottom: 48 },
   rowGap: { flexDirection: 'row', gap: size.gap, marginBottom: size.gap },
+  selectAll: { marginBottom: size.gap },
   flex: { flex: 1 },
   slider: { width: '100%', height: 56 },
   sliderLabel: { color: theme.textDim, fontSize: size.fontSm, fontWeight: '800', marginTop: 12, letterSpacing: 1 },

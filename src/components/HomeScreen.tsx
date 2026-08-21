@@ -1,18 +1,28 @@
-import React, { useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { size, theme } from '../theme';
 import { useLightManager } from '../hooks/useLightManager';
+import { useScenes } from '../hooks/useScenes';
 import { BigButton } from './BigButton';
 import { ControlPanel } from './ControlPanel';
 import { ScenesPanel } from './ScenesPanel';
 import { DevicesPanel } from './DevicesPanel';
-import { ShackMapPanel } from './ShackMapPanel';
 
-type Tab = 'control' | 'map' | 'scenes' | 'devices';
+type Tab = 'control' | 'scenes' | 'devices';
 
 export function HomeScreen() {
   const { snapshot } = useLightManager();
+  const { scenes, saveCurrent } = useScenes();
   const [tab, setTab] = useState<Tab>('control');
+  const [saved, setSaved] = useState(false);
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const quickSave = () => {
+    saveCurrent(`Look ${scenes.length + 1}`);
+    setSaved(true);
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+    savedTimer.current = setTimeout(() => setSaved(false), 1400);
+  };
 
   const connected = snapshot.devices.filter((d) => d.state === 'connected').length;
   const total = snapshot.devices.length;
@@ -27,16 +37,14 @@ export function HomeScreen() {
   return (
     <View style={styles.root}>
       <View style={styles.body}>
-        {tab === 'control' ? (
-          <ControlPanel />
-        ) : tab === 'map' ? (
-          <ShackMapPanel />
-        ) : tab === 'scenes' ? (
-          <ScenesPanel />
-        ) : (
-          <DevicesPanel />
-        )}
+        {tab === 'control' ? <ControlPanel /> : tab === 'scenes' ? <ScenesPanel /> : <DevicesPanel />}
       </View>
+
+      {/* Fixed heart quick-save, pinned to the top-left corner */}
+      <Pressable onPress={quickSave} hitSlop={10} style={styles.heart}>
+        <Text style={[styles.heartIcon, { color: saved ? theme.err : theme.text }]}>{saved ? '♥' : '♡'}</Text>
+        {saved ? <Text style={styles.savedText}>Saved</Text> : null}
+      </Pressable>
 
       {/* Fixed status pill, always pinned to the top-right corner */}
       <View style={styles.statusPill} pointerEvents="none">
@@ -51,10 +59,11 @@ export function HomeScreen() {
 
       {/* Bottom tabs */}
       <View style={styles.tabs}>
-        <BigButton label="Control" active={tab === 'control'} onPress={() => setTab('control')} tone="accent" small style={styles.flex} />
-        <BigButton label="Map" active={tab === 'map'} onPress={() => setTab('map')} tone="accent" small style={styles.flex} />
-        <BigButton label="Scenes" active={tab === 'scenes'} onPress={() => setTab('scenes')} tone="accent" small style={styles.flex} />
-        <BigButton label="Devices" active={tab === 'devices'} onPress={() => setTab('devices')} tone="accent" small style={styles.flex} />
+        <View style={styles.tabRow}>
+          <BigButton label="Control" active={tab === 'control'} onPress={() => setTab('control')} tone="accent" small style={styles.flex} />
+          <BigButton label="Scenes" active={tab === 'scenes'} onPress={() => setTab('scenes')} tone="accent" small style={styles.flex} />
+          <BigButton label="Devices" active={tab === 'devices'} onPress={() => setTab('devices')} tone="accent" small style={styles.flex} />
+        </View>
       </View>
     </View>
   );
@@ -63,6 +72,23 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
   body: { flex: 1 },
+  heart: {
+    position: 'absolute',
+    top: 6,
+    left: size.gap,
+    zIndex: 10,
+    height: 40,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: theme.border,
+    backgroundColor: theme.surface,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  heartIcon: { fontSize: 22, fontWeight: '900', marginTop: -2 },
+  savedText: { color: theme.err, fontSize: size.fontSm, fontWeight: '800' },
   statusPill: { position: 'absolute', top: 6, right: size.gap, zIndex: 10 },
   pill: {
     flexDirection: 'row',
@@ -78,8 +104,7 @@ const styles = StyleSheet.create({
   count: { fontSize: size.fontMd, fontWeight: '900' },
   scan: { color: theme.warn, fontSize: 15, fontWeight: '900' },
   tabs: {
-    flexDirection: 'row',
-    gap: size.gap,
+    gap: 8,
     paddingHorizontal: size.gap,
     paddingTop: 8,
     paddingBottom: 6,
@@ -87,5 +112,6 @@ const styles = StyleSheet.create({
     borderTopColor: theme.border,
     backgroundColor: theme.surface,
   },
+  tabRow: { flexDirection: 'row', gap: size.gap },
   flex: { flex: 1 },
 });

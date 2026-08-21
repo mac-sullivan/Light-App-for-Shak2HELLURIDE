@@ -21,21 +21,21 @@ export function EffectPad({
     <View>
       <Text style={styles.hint}>Names are labels — tap to see what each looks like on the strips</Text>
 
-      <View style={styles.grid}>
+      <View style={styles.allGrid}>
         {EFFECT_FAVORITES.map((mode) => (
           <Pressable
             key={mode}
             onPress={() => onPick(mode)}
             style={({ pressed }) => [
-              styles.pick,
+              styles.cell,
               selected === mode && styles.active,
               { opacity: pressed ? 0.7 : 1 },
             ]}
           >
-            <Text style={styles.pickLabel} numberOfLines={1}>
+            <Text style={styles.cellName} numberOfLines={1}>
               {effectName(mode)}
             </Text>
-            <Text style={styles.pickNum}>#{mode}</Text>
+            <Text style={styles.cellNum}>#{mode}</Text>
           </Pressable>
         ))}
       </View>
