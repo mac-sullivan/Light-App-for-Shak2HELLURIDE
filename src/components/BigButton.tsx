@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { size, theme } from '../theme';
 
 type Props = {
@@ -25,7 +26,10 @@ export function BigButton({ label, onPress, active, tone = 'default', small, sty
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        Haptics.selectionAsync().catch(() => {});
+        onPress();
+      }}
       disabled={disabled}
       android_disableSound
       hitSlop={8}

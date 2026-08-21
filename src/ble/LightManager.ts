@@ -713,6 +713,52 @@ export class LightManager {
     } else if (name === 'strobe') {
       const c = tick % 2 === 0 ? { r: 255, g: 255, b: 255 } : { r: 0, g: 0, b: 0 };
       t.forEach((d) => sends.push(this.writeTo(d, SP110E.color(c)).catch(() => {})));
+    } else if (name === 'chase') {
+      const band = tick % n;
+      const hue = (tick * 6) % 360;
+      t.forEach((d, i) =>
+        sends.push(this.writeTo(d, SP110E.color(hsvToRgb(hue, 1, i === band ? 1 : 0.04))).catch(() => {}))
+      );
+    } else if (name === 'comet') {
+      const band = tick % n;
+      const hue = (tick * 6) % 360;
+      t.forEach((d, i) => {
+        const behind = (band - i + n) % n;
+        const v = behind === 0 ? 1 : behind === 1 ? 0.5 : behind === 2 ? 0.22 : 0.05;
+        sends.push(this.writeTo(d, SP110E.color(hsvToRgb(hue, 1, v))).catch(() => {}));
+      });
+    } else if (name === 'wave') {
+      const hue = (tick * 3) % 360;
+      t.forEach((d, i) => {
+        const v = 0.2 + 0.8 * (0.5 + 0.5 * Math.sin(i * 0.9 - tick * 0.4));
+        sends.push(this.writeTo(d, SP110E.color(hsvToRgb(hue, 1, v))).catch(() => {}));
+      });
+    } else if (name === 'breathe') {
+      const v = 0.12 + 0.88 * (0.5 + 0.5 * Math.sin(tick * 0.16));
+      const c = hsvToRgb((tick * 1.2) % 360, 1, v);
+      t.forEach((d) => sends.push(this.writeTo(d, SP110E.color(c)).catch(() => {})));
+    } else if (name === 'alternate') {
+      const a = hsvToRgb((tick * 4) % 360, 1, 1);
+      const b = hsvToRgb((tick * 4 + 180) % 360, 1, 1);
+      t.forEach((d, i) => sends.push(this.writeTo(d, SP110E.color((i + tick) % 2 === 0 ? a : b)).catch(() => {})));
+    } else if (name === 'police') {
+      const red = { r: 255, g: 0, b: 0 };
+      const blue = { r: 0, g: 0, b: 255 };
+      const flip = tick % 2 === 0;
+      t.forEach((d, i) => sends.push(this.writeTo(d, SP110E.color(i < n / 2 === flip ? red : blue)).catch(() => {})));
+    } else if (name === 'twinkle') {
+      const hue = (tick * 5) % 360;
+      t.forEach((d) =>
+        sends.push(this.writeTo(d, SP110E.color(hsvToRgb(hue, 1, Math.random() > 0.62 ? 1 : 0.08))).catch(() => {}))
+      );
+    } else if (name === 'confetti') {
+      t.forEach((d) => {
+        const c = Math.random() > 0.45 ? hsvToRgb(Math.floor(Math.random() * 360), 1, 1) : { r: 0, g: 0, b: 0 };
+        sends.push(this.writeTo(d, SP110E.color(c)).catch(() => {}));
+      });
+    } else if (name === 'sunset') {
+      const base = (20 + 25 * Math.sin(tick * 0.06) + 360) % 360;
+      t.forEach((d, i) => sends.push(this.writeTo(d, SP110E.color(hsvToRgb((base + i * 6) % 360, 1, 1))).catch(() => {})));
     }
     await Promise.allSettled(sends);
   }

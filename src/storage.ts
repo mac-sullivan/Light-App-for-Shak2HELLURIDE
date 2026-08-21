@@ -5,6 +5,7 @@ const NAMES_KEY = 'artcar.deviceDefs.v2';
 const SCENES_KEY = 'artcar.scenes.v1';
 const GROUPS_KEY = 'artcar.groups.v2';
 const LASTLOOK_KEY = 'artcar.lastLook.v1';
+const MAPASSIGN_KEY = 'artcar.mapAssign.v1';
 
 /**
  * A strip the app controls. `name` is the exact BLE broadcast name we connect
@@ -148,6 +149,28 @@ export async function loadLastLook(): Promise<Record<string, LightState> | null>
 export async function saveLastLook(states: Record<string, LightState>): Promise<void> {
   try {
     await AsyncStorage.setItem(LASTLOOK_KEY, JSON.stringify(states));
+  } catch {
+    // best-effort
+  }
+}
+
+/** Map slot name -> device name, so the shack map works regardless of BLE names. */
+export async function loadMapAssign(): Promise<Record<string, string>> {
+  try {
+    const raw = await AsyncStorage.getItem(MAPASSIGN_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') return parsed as Record<string, string>;
+    }
+  } catch {
+    // ignore
+  }
+  return {};
+}
+
+export async function saveMapAssign(assign: Record<string, string>): Promise<void> {
+  try {
+    await AsyncStorage.setItem(MAPASSIGN_KEY, JSON.stringify(assign));
   } catch {
     // best-effort
   }

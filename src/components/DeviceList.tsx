@@ -30,9 +30,10 @@ export function DeviceList({
   const [draft, setDraft] = useState('');
   const allSelected = selected.length === 0;
   const sel = new Set(selected);
-  const ordered = [...devices].sort(
-    (a, b) => Number(b.state === 'connected') - Number(a.state === 'connected')
-  );
+  // While editing, keep a stable order so re-sorts don't steal input focus.
+  const ordered = editing
+    ? devices
+    : [...devices].sort((a, b) => Number(b.state === 'connected') - Number(a.state === 'connected'));
 
   return (
     <View>
