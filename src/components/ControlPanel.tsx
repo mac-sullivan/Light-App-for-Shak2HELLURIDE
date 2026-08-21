@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { HapticSlider as Slider } from './HapticSlider';
 import { size, theme } from '../theme';
 import { SEQUENCES, type RGB } from '../protocol';
@@ -102,15 +103,26 @@ export function ControlPanel() {
 
   return (
     <View style={styles.screen}>
-      {/* Pinned header: wordmark (scroll-to-top) + section switcher */}
+      {/* Pinned header: subtle wordmark (scroll-to-top) + slim section switcher */}
       <View style={styles.header}>
         <Pressable onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })} hitSlop={8}>
-          <Text style={styles.logo}>SHAK·TO·HELL·U·RIDE</Text>
+          <Text style={styles.logo}>shak to hell u ride</Text>
         </Pressable>
-        <View style={styles.pills}>
-          <BigButton label="Color" onPress={() => setMode('color')} active={mode === 'color'} tone="accent" small style={styles.flex} />
-          <BigButton label="Effects" onPress={() => setMode('effects')} active={mode === 'effects'} tone="accent" small style={styles.flex} />
-          <BigButton label="Shows" onPress={() => setMode('shows')} active={mode === 'shows'} tone="accent" small style={styles.flex} />
+        <View style={styles.seg}>
+          {(['color', 'effects', 'shows'] as const).map((m) => {
+            const active = mode === m;
+            return (
+              <Pressable
+                key={m}
+                onPress={() => { Haptics.selectionAsync().catch(() => {}); setMode(m); }}
+                style={[styles.segItem, active && styles.segItemActive]}
+              >
+                <Text style={[styles.segText, active && styles.segTextActive]}>
+                  {m === 'color' ? 'Color' : m === 'effects' ? 'Effects' : 'Shows'}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
       </View>
 
@@ -202,9 +214,13 @@ export function ControlPanel() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
-  header: { paddingTop: 50, paddingHorizontal: size.gap, paddingBottom: 10, backgroundColor: theme.bg, borderBottomWidth: 1, borderBottomColor: theme.border },
-  logo: { color: theme.accent, fontSize: 14, fontWeight: '900', letterSpacing: 2, textAlign: 'center', marginBottom: 10 },
-  pills: { flexDirection: 'row', gap: size.gap },
+  header: { paddingTop: 48, paddingHorizontal: size.gap, paddingBottom: 10, backgroundColor: theme.bg, borderBottomWidth: 1, borderBottomColor: theme.border },
+  logo: { color: theme.textDim, fontSize: 11, fontWeight: '700', letterSpacing: 4, textAlign: 'center', marginBottom: 10, textTransform: 'uppercase', opacity: 0.6 },
+  seg: { flexDirection: 'row', backgroundColor: theme.surfaceHi, borderRadius: 12, padding: 4, gap: 4 },
+  segItem: { flex: 1, paddingVertical: 9, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  segItemActive: { backgroundColor: theme.accent },
+  segText: { color: theme.textDim, fontSize: 15, fontWeight: '800', letterSpacing: 0.3 },
+  segTextActive: { color: '#000' },
   scroll: { flex: 1 },
   content: { paddingHorizontal: size.gap, paddingTop: size.gap, paddingBottom: 48 },
   rowGap: { flexDirection: 'row', gap: size.gap, marginBottom: size.gap },
