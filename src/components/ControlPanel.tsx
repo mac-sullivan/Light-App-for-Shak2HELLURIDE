@@ -166,7 +166,7 @@ export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) =
           </SectionCard>
         ) : (
           <SectionCard title="Shows — whole shack">
-            <Text style={styles.showHint}>App-driven light shows that take over the whole car. A show overrides your color &amp; effect on every strip until you stop it — it runs car-wide, not just your selected strips.</Text>
+            <Text style={styles.showHint}>Whole-car shows — they override color &amp; effect on every strip.</Text>
             <View style={styles.quickRow}>
               {SHOWS.map((s) => (
                 <BigButton key={s.id} label={s.label} onPress={() => (snapshot.show === s.id ? manager.stopShow() : manager.startShow(s.id))} active={snapshot.show === s.id} tone="accent" small style={styles.showBtn} />
