@@ -4,19 +4,12 @@ import { HapticSlider as Slider } from './HapticSlider';
 import { size, theme } from '../theme';
 import { SEQUENCES, type RGB } from '../protocol';
 import { useLightManager } from '../hooks/useLightManager';
-import { useGroups } from '../hooks/useGroups';
 import { useScenes } from '../hooks/useScenes';
-import { useMapAssign } from '../hooks/useMapAssign';
 import { useThrottledCallback } from '../util/throttle';
 import { BigButton } from './BigButton';
 import { SectionCard } from './SectionCard';
 import { ColorPicker } from './ColorPicker';
 import { EffectPad } from './EffectPad';
-import { SelectionChips } from './SelectionChips';
-import { ShackMap } from './ShackMap';
-import { Groups } from './Groups';
-import { AdvancedSetup } from './AdvancedSetup';
-import type { DeviceEntry } from '../ble/types';
 
 // Ordered by vibe with the crowd-pleasers up top: hot/red first, then colorful,
 // then the calm ones, then party/alarm, then music.
@@ -45,23 +38,17 @@ const SHOWS: { id: string; label: string }[] = [
   { id: 'music', label: 'Music' },
 ];
 
-export type Mode = 'map' | 'color' | 'effects' | 'shows';
+export type Mode = 'color' | 'effects' | 'shows';
 
 export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) => void }) {
   const { snapshot, manager } = useLightManager();
-  const { groups, saveGroup, deleteGroup } = useGroups();
   const { scenes, applyScene } = useScenes();
-  const { assign, setSlot } = useMapAssign();
 
   const [color, setColor] = useState<RGB>({ r: 255, g: 0, b: 0 });
   const [brightness, setBrightness] = useState(255);
   const [white, setWhite] = useState(0);
   const [effect, setEffect] = useState<number | undefined>(undefined);
   const [speed, setSpeed] = useState(180);
-  const [pickMode, setPickMode] = useState<'map' | 'list'>('map');
-  const [assignMode, setAssignMode] = useState(false);
-  const [pendingSlot, setPendingSlot] = useState<string | null>(null);
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const allSelected = snapshot.selected.length === 0;
   const selectedSet = useMemo(() => new Set(snapshot.selected), [snapshot.selected]);
@@ -92,11 +79,6 @@ export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) =
   const sendSpeed = useThrottledCallback((v: number) => manager.masterSpeed(v), 70);
   const sendWhite = useThrottledCallback((v: number) => manager.masterWhite(v), 80);
 
-  const onSlotPress = (slot: string, dev?: DeviceEntry) => {
-    if (assignMode) setPendingSlot((p) => (p === slot ? null : slot));
-    else if (dev) manager.toggleSelect(dev.name);
-  };
-
   const brightnessSlider = (
     <>
       <Text style={styles.sliderLabel}>Brightness · {Math.round((brightness / 255) * 100)}%</Text>
@@ -108,45 +90,6 @@ export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) =
   return (
     <View style={styles.screen}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        {mode === 'map' ? (
-          <>
-            {/* Map — pick which strips the color/effects controls will change */}
-            <SectionCard title={`Select strips · ${targetLabel}`}>
-              <BigButton label="Select all strips" onPress={() => manager.selectAll()} active={allSelected} tone="accent" small style={styles.selectAll} />
-              <View style={styles.rowGap}>
-                <BigButton label="Map" onPress={() => setPickMode('map')} active={pickMode === 'map'} tone="accent" small style={styles.flex} />
-                <BigButton label="List" onPress={() => setPickMode('list')} active={pickMode === 'list'} tone="accent" small style={styles.flex} />
-              </View>
-              {pickMode === 'map' ? (
-                <>
-                  <ShackMap devices={snapshot.devices} selected={snapshot.selected} assign={assign} assignMode={assignMode} pendingSlot={pendingSlot} show={snapshot.show} onSlotPress={onSlotPress} />
-                  <BigButton label={assignMode ? 'Done assigning' : 'Assign lights to map'} onPress={() => { setAssignMode((a) => !a); setPendingSlot(null); }} active={assignMode} tone="accent" small style={styles.assignToggle} />
-                  {assignMode && pendingSlot ? (
-                    <View style={styles.assignBox}>
-                      <Text style={styles.assignTitle}>Assign “{pendingSlot}” to a light:</Text>
-                      <View style={styles.quickRow}>
-                        {snapshot.devices.map((d) => (
-                          <BigButton key={d.name} label={d.label || d.name} onPress={() => { setSlot(pendingSlot, d.name); setPendingSlot(null); }} active={assign[pendingSlot] === d.name} tone="accent" small style={styles.quick} />
-                        ))}
-                        <BigButton label="Unassign" onPress={() => { setSlot(pendingSlot, null); setPendingSlot(null); }} tone="off" small style={styles.quick} />
-                      </View>
-                    </View>
-                  ) : null}
-                </>
-              ) : (
-                <SelectionChips devices={snapshot.devices} selected={snapshot.selected} onToggle={(name) => manager.toggleSelect(name)} />
-              )}
-              <Groups groups={groups} selected={snapshot.selected} onApply={(members) => manager.selectOnly(members)} onSave={(name) => saveGroup(name, snapshot.selected)} onDelete={deleteGroup} />
-            </SectionCard>
-
-            {/* Advanced setup lives with the map/selection tools */}
-            <SectionCard title="Advanced setup">
-              <BigButton label={showAdvanced ? 'Hide advanced' : 'LED type · pixel count'} onPress={() => setShowAdvanced((s) => !s)} active={showAdvanced} tone="accent" small />
-              {showAdvanced ? <AdvancedSetup targetLabel={targetLabel} onIcModel={(i) => manager.masterIcModel(i)} onPixels={(n) => manager.masterPixels(n)} /> : null}
-            </SectionCard>
-          </>
-        ) : null}
-
         {/* Color/Effects/Shows stay mounted and just toggle visibility, so their
             sliders never re-mount and animate the thumb up from zero. */}
         <View style={mode === 'color' ? undefined : styles.hidden}>
@@ -202,14 +145,8 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingHorizontal: size.gap, paddingTop: 104, paddingBottom: 40 },
   hidden: { display: 'none' },
-  rowGap: { flexDirection: 'row', gap: size.gap, marginBottom: size.gap },
-  selectAll: { marginBottom: size.gap },
   stopShow: { marginTop: size.gap },
   autoBtn: { marginBottom: 10 },
-  assignToggle: { marginTop: 10 },
-  assignBox: { marginTop: 10, padding: 10, borderRadius: size.radius, backgroundColor: theme.surfaceAlt, borderWidth: 1, borderColor: theme.accent },
-  assignTitle: { color: theme.text, fontSize: size.fontSm, fontWeight: '800', marginBottom: 6 },
-  flex: { flex: 1 },
   slider: { width: '100%', height: 56 },
   sliderLabel: { color: theme.textDim, fontSize: size.fontSm, fontWeight: '800', marginTop: 12, letterSpacing: 1 },
   showHint: { color: theme.textDim, fontSize: size.fontSm, marginBottom: 4 },
