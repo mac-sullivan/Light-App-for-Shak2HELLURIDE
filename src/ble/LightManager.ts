@@ -390,6 +390,7 @@ export class LightManager {
       brightness: entry.brightness,
       speed: entry.speed,
       sequence: entry.sequence,
+      white: entry.white,
     });
   }
 
@@ -618,6 +619,8 @@ export class LightManager {
   /** White channel level 0..255 — set to 0 to kill the wash on RGBW LEDs. */
   async masterWhite(value: number) {
     const t = this.targets();
+    t.forEach((d) => (d.white = value));
+    this.emit();
     await this.sendTo(t, SP110E.white(value));
   }
 
@@ -810,6 +813,7 @@ export class LightManager {
         brightness: d.brightness,
         speed: d.speed,
         sequence: d.sequence,
+        white: d.white,
       };
     }
     return out;
@@ -827,6 +831,7 @@ export class LightManager {
         d.brightness = s.brightness;
         d.speed = s.speed;
         d.sequence = s.sequence ?? d.sequence;
+        d.white = s.white ?? d.white;
       }
     }
     this.emit();
@@ -858,12 +863,15 @@ export class LightManager {
     entry.brightness = s.brightness;
     entry.speed = s.speed;
     entry.sequence = s.sequence ?? entry.sequence;
+    entry.white = s.white ?? entry.white;
     this.emit();
     try {
       await this.writeTo(entry, SP110E.power(s.power));
       if (s.power) {
         // Restore this strip's color order first, then base color.
         await this.writeTo(entry, SP110E.sequence(entry.sequence));
+        await delay(20);
+        await this.writeTo(entry, SP110E.white(entry.white));
         await delay(20);
         await this.writeTo(entry, SP110E.color(s.color));
         await delay(20);

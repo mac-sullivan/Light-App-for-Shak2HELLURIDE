@@ -77,6 +77,7 @@ export const DEFAULT_SCENES: Scene[] = [
       brightness: 255,
       speed: 200,
       sequence: 2,
+      white: 0,
     },
   },
 ];

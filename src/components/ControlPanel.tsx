@@ -33,6 +33,7 @@ export function ControlPanel() {
   const [tab, setTab] = useState<'color' | 'effects'>('color');
   const [color, setColor] = useState<RGB>({ r: 255, g: 0, b: 0 });
   const [brightness, setBrightness] = useState(255);
+  const [white, setWhite] = useState(0);
   const [effect, setEffect] = useState<number | undefined>(undefined);
   const [speed, setSpeed] = useState(180);
   const [showAllEffects, setShowAllEffects] = useState(false);
@@ -58,6 +59,7 @@ export function ControlPanel() {
     if (r) {
       setColor(r.color);
       setBrightness(r.brightness);
+      setWhite(r.white);
       setSpeed(r.speed);
       setEffect(r.mode === 'effect' ? r.effect : undefined);
       setTab(r.mode === 'effect' || r.mode === 'auto' ? 'effects' : 'color');
@@ -129,6 +131,19 @@ export function ControlPanel() {
             thumbTintColor={theme.text}
             onValueChange={(v) => { setBrightness(v); sendBrightness(v); }}
             onSlidingComplete={(v) => manager.masterBrightness(v)}
+            style={styles.slider}
+          />
+          <Text style={styles.sliderLabel}>White · {Math.round((white / 255) * 100)}%  (RGBW pods only)</Text>
+          <Slider
+            minimumValue={0}
+            maximumValue={255}
+            value={white}
+            step={1}
+            minimumTrackTintColor={theme.text}
+            maximumTrackTintColor={theme.surfaceHi}
+            thumbTintColor={theme.text}
+            onValueChange={(v) => { setWhite(v); sendWhite(v); }}
+            onSlidingComplete={(v) => manager.masterWhite(v)}
             style={styles.slider}
           />
           <Text style={styles.sliderLabel}>Color order — tap until red looks red</Text>
@@ -221,8 +236,6 @@ export function ControlPanel() {
           <AdvancedSetup
             targetLabel={targetLabel}
             onIcModel={(i) => manager.masterIcModel(i)}
-            onWhite={sendWhite}
-            onWhiteFinal={(v) => manager.masterWhite(v)}
             onPixels={(n) => manager.masterPixels(n)}
           />
         ) : null}

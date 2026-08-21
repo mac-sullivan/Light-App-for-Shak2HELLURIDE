@@ -13,40 +13,18 @@ import { size, theme } from '../theme';
 export function AdvancedSetup({
   targetLabel,
   onIcModel,
-  onWhite,
-  onWhiteFinal,
   onPixels,
 }: {
   targetLabel: string;
   onIcModel: (index: number) => void;
-  onWhite: (value: number) => void;
-  onWhiteFinal: (value: number) => void;
   onPixels: (count: number) => void;
 }) {
-  const [white, setWhite] = useState(0);
   const [pixels, setPixels] = useState(60);
   const [icIndex, setIcIndex] = useState<number | null>(null);
 
   return (
     <View>
       <Text style={styles.applies}>Applies to: {targetLabel}</Text>
-
-      <Text style={styles.label}>White channel (RGBW) — drag to 0 to remove white wash</Text>
-      <Slider
-        minimumValue={0}
-        maximumValue={255}
-        step={1}
-        value={white}
-        minimumTrackTintColor={theme.text}
-        maximumTrackTintColor={theme.surfaceHi}
-        thumbTintColor={theme.text}
-        onValueChange={(v) => {
-          setWhite(v);
-          onWhite(v);
-        }}
-        onSlidingComplete={(v) => onWhiteFinal(v)}
-        style={styles.slider}
-      />
 
       <Text style={styles.label}>Pixel / pod count · {pixels}</Text>
       <Slider
