@@ -389,6 +389,7 @@ export class LightManager {
       effect: entry.effect,
       brightness: entry.brightness,
       speed: entry.speed,
+      sequence: entry.sequence,
     });
   }
 
@@ -594,6 +595,8 @@ export class LightManager {
    */
   async masterSequence(index: number) {
     const t = this.targets();
+    t.forEach((d) => (d.sequence = index));
+    this.emit();
     await this.sendTo(t, SP110E.sequence(index));
     await delay(80);
     await this.sendTo(t, SP110E.staticMode());
@@ -806,6 +809,7 @@ export class LightManager {
         effect: d.effect,
         brightness: d.brightness,
         speed: d.speed,
+        sequence: d.sequence,
       };
     }
     return out;
@@ -822,6 +826,7 @@ export class LightManager {
         d.effect = s.effect;
         d.brightness = s.brightness;
         d.speed = s.speed;
+        d.sequence = s.sequence ?? d.sequence;
       }
     }
     this.emit();
@@ -852,11 +857,14 @@ export class LightManager {
     entry.effect = s.effect;
     entry.brightness = s.brightness;
     entry.speed = s.speed;
+    entry.sequence = s.sequence ?? entry.sequence;
     this.emit();
     try {
       await this.writeTo(entry, SP110E.power(s.power));
       if (s.power) {
-        // Set the base color first so monochrome effects (fire, breathe) tint.
+        // Restore this strip's color order first, then base color.
+        await this.writeTo(entry, SP110E.sequence(entry.sequence));
+        await delay(20);
         await this.writeTo(entry, SP110E.color(s.color));
         await delay(20);
         if (s.mode === 'solid') {

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { size, theme } from '../theme';
@@ -47,6 +47,23 @@ export function ControlPanel() {
   const allOn = targetDevices.length > 0 && targetDevices.every((d) => d.power);
   const targetLabel = allSelected ? 'All strips' : `${snapshot.selected.length} selected`;
 
+  // Representative device — the controls reflect (and save to) the selection.
+  const rep = targetDevices[0];
+  const selKey = allSelected ? 'all' : snapshot.selected.join(',');
+  const repRef = useRef(rep);
+  repRef.current = rep;
+  // When the selection changes, load that strip's saved profile into the UI.
+  useEffect(() => {
+    const r = repRef.current;
+    if (r) {
+      setColor(r.color);
+      setBrightness(r.brightness);
+      setSpeed(r.speed);
+      setEffect(r.mode === 'effect' ? r.effect : undefined);
+      setTab(r.mode === 'effect' || r.mode === 'auto' ? 'effects' : 'color');
+    }
+  }, [selKey]);
+
   const sendColor = useThrottledCallback((c: RGB) => manager.masterColor(c), 90);
   const sendBrightness = useThrottledCallback((v: number) => manager.masterBrightness(v), 70);
   const sendSpeed = useThrottledCallback((v: number) => manager.masterSpeed(v), 70);
@@ -87,12 +104,13 @@ export function ControlPanel() {
       <View style={styles.rowGap}>
         <BigButton label="Color" onPress={() => setTab('color')} active={tab === 'color'} tone="accent" small style={styles.flex} />
         <BigButton label="Effects" onPress={() => setTab('effects')} active={tab === 'effects'} tone="accent" small style={styles.flex} />
-        <BigButton label="Auto" onPress={() => { setEffect(0); manager.masterAutoCycle(); }} tone="accent" small style={styles.flex} />
+        <BigButton label="Auto" onPress={() => { setEffect(0); manager.masterAutoCycle(); }} active={rep?.mode === 'auto'} tone="accent" small style={styles.flex} />
       </View>
 
       {tab === 'color' ? (
         <SectionCard title={`Color · ${targetLabel}`}>
           <ColorPicker
+            key={selKey}
             color={color}
             onChange={(c) => {
               setColor(c);
@@ -120,6 +138,8 @@ export function ControlPanel() {
                 key={s}
                 label={s}
                 onPress={() => manager.masterSequence(i)}
+                active={rep?.sequence === i}
+                tone="accent"
                 small
                 style={styles.quick}
               />

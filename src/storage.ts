@@ -76,6 +76,7 @@ export const DEFAULT_SCENES: Scene[] = [
       effect: 40, // "Lava Flow" — a fire-family animation
       brightness: 255,
       speed: 200,
+      sequence: 2,
     },
   },
 ];

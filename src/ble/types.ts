@@ -17,6 +17,7 @@ export interface LightState {
   effect: number; // last selected effect mode (1..120)
   brightness: number; // 0..255
   speed: number; // 0..255
+  sequence: number; // color order index (RGB/GRB/…), 0..5
 }
 
 export interface DeviceEntry extends LightState {
@@ -67,4 +68,5 @@ export const DEFAULT_LIGHT_STATE: LightState = {
   effect: 1,
   brightness: 255, // 100% on first start
   speed: 180,
+  sequence: 2, // GRB — most WS2812B strips
 };
