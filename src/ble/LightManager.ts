@@ -391,6 +391,8 @@ export class LightManager {
       speed: entry.speed,
       sequence: entry.sequence,
       white: entry.white,
+      icModel: entry.icModel,
+      pixels: entry.pixels,
     });
   }
 
@@ -611,6 +613,8 @@ export class LightManager {
   /** LED chip / IC model (index into IC_MODELS). Changes how colors render. */
   async masterIcModel(index: number) {
     const t = this.targets();
+    t.forEach((d) => (d.icModel = index));
+    this.emit();
     await this.sendTo(t, SP110E.icModel(index));
     this.lastWrite = `IC model → ${index}`;
     this.emit();
@@ -627,6 +631,8 @@ export class LightManager {
   /** Number of pixels/pods on the strip (1..1024). */
   async masterPixels(count: number) {
     const t = this.targets();
+    t.forEach((d) => (d.pixels = count));
+    this.emit();
     await this.sendTo(t, SP110E.pixels(count));
     this.lastWrite = `pixels → ${count}`;
     this.emit();
@@ -860,6 +866,8 @@ export class LightManager {
         speed: d.speed,
         sequence: d.sequence,
         white: d.white,
+        icModel: d.icModel,
+        pixels: d.pixels,
       };
     }
     return out;
@@ -878,6 +886,8 @@ export class LightManager {
         d.speed = s.speed;
         d.sequence = s.sequence ?? d.sequence;
         d.white = s.white ?? d.white;
+        d.icModel = s.icModel ?? d.icModel;
+        d.pixels = s.pixels ?? d.pixels;
       }
     }
     this.emit();
@@ -910,8 +920,19 @@ export class LightManager {
     entry.speed = s.speed;
     entry.sequence = s.sequence ?? entry.sequence;
     entry.white = s.white ?? entry.white;
+    entry.icModel = s.icModel ?? entry.icModel;
+    entry.pixels = s.pixels ?? entry.pixels;
     this.emit();
     try {
+      // Self-heal a reset controller: re-apply chip type + pixel count if set.
+      if (entry.icModel != null) {
+        await this.writeTo(entry, SP110E.icModel(entry.icModel));
+        await delay(20);
+      }
+      if (entry.pixels != null) {
+        await this.writeTo(entry, SP110E.pixels(entry.pixels));
+        await delay(20);
+      }
       await this.writeTo(entry, SP110E.power(s.power));
       if (s.power) {
         // Restore this strip's color order first, then base color.

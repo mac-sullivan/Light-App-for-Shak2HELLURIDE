@@ -34,6 +34,7 @@
         {
           "isBackgroundEnabled": true,
           "modes": ["central"],
+          "neverForLocation": true,
           "bluetoothAlwaysPermission": "This app talks to the art car's LED controllers over Bluetooth. It never uses the internet."
         }
       ],

@@ -79,6 +79,8 @@ export const DEFAULT_SCENES: Scene[] = [
       speed: 200,
       sequence: 2,
       white: 0,
+      icModel: null,
+      pixels: null,
     },
   },
 ];

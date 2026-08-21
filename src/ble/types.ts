@@ -19,6 +19,8 @@ export interface LightState {
   speed: number; // 0..255
   sequence: number; // color order index (RGB/GRB/…), 0..5
   white: number; // white channel 0..255 (RGBW strips only)
+  icModel: number | null; // LED chip index (null = never set, don't touch)
+  pixels: number | null; // pixel/pod count (null = never set, don't touch)
 }
 
 export interface DeviceEntry extends LightState {
@@ -71,4 +73,6 @@ export const DEFAULT_LIGHT_STATE: LightState = {
   speed: 180,
   sequence: 2, // GRB — most WS2812B strips
   white: 0,
+  icModel: null,
+  pixels: null,
 };

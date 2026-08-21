@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Slider from '@react-native-community/slider';
+import { HapticSlider as Slider } from './HapticSlider';
 import { LinearGradient } from 'expo-linear-gradient';
 import { size, theme } from '../theme';
 import type { RGB } from '../protocol';

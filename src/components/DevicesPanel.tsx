@@ -6,6 +6,7 @@ import { SectionCard } from './SectionCard';
 import { BigButton } from './BigButton';
 import { DeviceList } from './DeviceList';
 import { Nearby } from './Nearby';
+import { Backup } from './Backup';
 
 export function DevicesPanel() {
   const { snapshot, manager, addDevice, removeDevice, removeOffline, setLabel } = useLightManager();
@@ -77,6 +78,10 @@ export function DevicesPanel() {
             style={styles.cleanup}
           />
         ) : null}
+      </SectionCard>
+
+      <SectionCard title="Backup & share setup">
+        <Backup />
       </SectionCard>
     </ScrollView>
   );

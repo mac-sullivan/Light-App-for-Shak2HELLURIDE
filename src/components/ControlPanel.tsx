@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import Slider from '@react-native-community/slider';
+import { HapticSlider as Slider } from './HapticSlider';
 import { size, theme } from '../theme';
 import { SEQUENCES, type RGB } from '../protocol';
 import { useLightManager } from '../hooks/useLightManager';
@@ -222,11 +222,11 @@ export function ControlPanel() {
                 active={snapshot.show === s.id}
                 tone="accent"
                 small
-                style={styles.quick}
+                style={styles.showBtn}
               />
             ))}
           </View>
-          {snapshot.show ? <BigButton label="■ Stop show" onPress={() => manager.stopShow()} tone="off" small style={styles.stopShow} /> : null}
+          {snapshot.show ? <BigButton label="Stop show" onPress={() => manager.stopShow()} tone="off" active small style={styles.stopShow} /> : null}
         </SectionCard>
       )}
 
@@ -260,5 +260,6 @@ const styles = StyleSheet.create({
   showHint: { color: theme.textDim, fontSize: size.fontSm, marginBottom: 4 },
   quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
   quick: { flexGrow: 1, minWidth: '30%' },
+  showBtn: { width: '31.5%' },
   debug: { color: theme.textDim, textAlign: 'center', marginTop: 12, fontSize: 13, opacity: 0.7 },
 });
