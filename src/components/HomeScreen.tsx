@@ -94,7 +94,7 @@ export function HomeScreen() {
         style={({ pressed }) => [styles.statusPill, { opacity: pressed ? 0.75 : 1 }]}
       >
         <View style={[styles.pill, { borderColor: summaryColor }]}>
-          <View style={[styles.dot, { backgroundColor: summaryColor }]} />
+          <Ionicons name="bluetooth" size={17} color={summaryColor} />
           <Text style={[styles.count, { color: summaryColor }]}>
             {connected}/{total}
           </Text>

@@ -70,7 +70,7 @@ export function EffectPad({
       </Pressable>
 
       {showAll ? (
-        <View style={styles.grid}>
+        <View style={[styles.grid, styles.allGrid]}>
           {ALL_MODES.map((m) => (
             <Pressable
               key={m}
@@ -93,6 +93,7 @@ const styles = StyleSheet.create({
   section: { color: theme.textDim, fontSize: size.fontSm, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', marginTop: 14, marginBottom: 6 },
   hint: { color: theme.textDim, fontSize: size.fontSm, marginBottom: 12, opacity: 0.8 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  allGrid: { marginTop: 12 },
   cell: {
     width: '48%',
     minHeight: 58,
