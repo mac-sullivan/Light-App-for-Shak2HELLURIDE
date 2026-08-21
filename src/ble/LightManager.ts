@@ -36,6 +36,16 @@ const SHOW_ORDER = [
   'Left Skirt', 'Right Skirt', 'Balcony', 'ShakAssist', 'Back Stairs',
 ];
 
+// Clockwise loop around the car's perimeter, so a moving band reads as a 360° spin:
+// front -> down the right side -> across the rear -> up the left side -> back to front.
+const SPIN_ORDER = [
+  'Front Siding', 'Front Skirt',
+  'Right Siding', 'Right Skirt',
+  'Balcony', 'Back Stairs',
+  'ShakAssist',
+  'Left Skirt', 'Left Siding',
+];
+
 /**
  * Owns all BLE state for the art car. One instance for the whole app.
  *
@@ -66,6 +76,7 @@ export class LightManager {
     selected: [],
     discovered: [],
     show: null,
+    showSpeed: 2.5,
     lastWrite: '',
   };
 
@@ -76,6 +87,8 @@ export class LightManager {
   private showName: string | null = null;
   private showTimer: ReturnType<typeof setInterval> | null = null;
   private showTick = 0;
+  private showIntervalMs = 160;
+  private showSpeed = 2.5; // seconds per lap for moving shows (Spin)
   private recording: Audio.Recording | null = null;
 
   // Per-device write method, chosen from the characteristic's actual properties.
@@ -104,6 +117,7 @@ export class LightManager {
         .map(([name, rssi]) => ({ name, rssi }))
         .sort((a, b) => b.rssi - a.rssi),
       show: this.showName,
+      showSpeed: this.showSpeed,
       lastWrite: this.lastWrite,
     };
     this.listeners.forEach((cb) => cb());
@@ -658,7 +672,8 @@ export class LightManager {
           .catch(() => {})
       )
     );
-    const interval = name === 'strobe' ? 110 : 160;
+    const interval = name === 'strobe' ? 110 : name === 'spin' ? 120 : 160;
+    this.showIntervalMs = interval;
     this.showTimer = setInterval(() => void this.showStep(), interval);
     this.emit();
   }
@@ -675,10 +690,10 @@ export class LightManager {
     }
   }
 
-  private orderedTargets(): DeviceEntry[] {
+  private orderedTargets(order: string[] = SHOW_ORDER): DeviceEntry[] {
     const idx = (d: DeviceEntry) => {
       const key = (d.label || d.name).toLowerCase();
-      const i = SHOW_ORDER.findIndex(
+      const i = order.findIndex(
         (n) => n.toLowerCase() === key || n.toLowerCase() === d.name.toLowerCase()
       );
       return i < 0 ? 999 : i;
@@ -686,16 +701,35 @@ export class LightManager {
     return this.connectedDevices().sort((a, b) => idx(a) - idx(b));
   }
 
+  /** Seconds for a moving show (Spin) to complete one full lap around the car. */
+  setSpinSpeed(seconds: number) {
+    this.showSpeed = Math.max(1, Math.min(5, seconds));
+    this.emit();
+  }
+
   private async showStep() {
     const name = this.showName;
     if (!name) return;
-    const t = this.orderedTargets();
+    const t = name === 'spin' ? this.orderedTargets(SPIN_ORDER) : this.orderedTargets();
     const n = t.length;
     if (n === 0) return;
     const tick = this.showTick++;
     const sends: Promise<void>[] = [];
 
-    if (name === 'rainbow') {
+    if (name === 'spin') {
+      // A glowing band rides around the perimeter, one full lap every showSpeed seconds.
+      const elapsedMs = tick * this.showIntervalMs;
+      const lapMs = this.showSpeed * 1000;
+      const head = ((elapsedMs % lapMs) / lapMs) * n; // continuous position in [0, n)
+      const hue = (elapsedMs * 0.06) % 360; // gentle colour drift
+      const sigma = 0.9; // band half-width in strips
+      t.forEach((d, i) => {
+        let dist = Math.abs(i - head);
+        dist = Math.min(dist, n - dist); // wrap around the loop
+        const v = Math.max(0.04, Math.exp(-(dist * dist) / (2 * sigma * sigma)));
+        sends.push(this.writeTo(d, SP110E.color(hsvToRgb(hue, 1, v))).catch(() => {}));
+      });
+    } else if (name === 'rainbow') {
       const base = (tick * 8) % 360;
       t.forEach((d, i) =>
         sends.push(this.writeTo(d, SP110E.color(hsvToRgb((base + (i * 360) / n) % 360, 1, 1))).catch(() => {}))

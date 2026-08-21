@@ -19,6 +19,7 @@ import { AdvancedSetup } from './AdvancedSetup';
 import type { DeviceEntry } from '../ble/types';
 
 const SHOWS: { id: string; label: string }[] = [
+  { id: 'spin', label: 'Spin 🌀' },
   { id: 'rainbow', label: 'Rainbow' },
   { id: 'sweep', label: 'Sweep' },
   { id: 'wave', label: 'Wave' },
@@ -167,6 +168,9 @@ export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) =
                 <BigButton key={s.id} label={s.label} onPress={() => (snapshot.show === s.id ? manager.stopShow() : manager.startShow(s.id))} active={snapshot.show === s.id} tone="accent" small style={styles.showBtn} />
               ))}
             </View>
+            <Text style={styles.sliderLabel}>Spin speed · {snapshot.showSpeed.toFixed(1)}s per lap</Text>
+            <Slider minimumValue={1} maximumValue={5} value={snapshot.showSpeed} step={0.5} minimumTrackTintColor={theme.accent} maximumTrackTintColor={theme.surfaceHi} thumbTintColor={theme.text}
+              onValueChange={(v) => manager.setSpinSpeed(v)} style={styles.slider} />
             {snapshot.show ? <BigButton label="Stop show" onPress={() => manager.stopShow()} tone="off" active small style={styles.stopShow} /> : null}
           </SectionCard>
         )}

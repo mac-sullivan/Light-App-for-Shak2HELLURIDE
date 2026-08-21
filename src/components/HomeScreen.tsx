@@ -1,5 +1,9 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+
+// Top pills ride to the very top on iOS (notch handled by the safe area); Android
+// keeps a small offset below its status bar.
+const PILL_TOP = Platform.OS === 'ios' ? 0 : 6;
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { size, theme } from '../theme';
@@ -44,13 +48,17 @@ export function HomeScreen() {
   const [mode, setMode] = useState<Mode>('color');
   const [saved, setSaved] = useState(false);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const heartScale = useRef(new Animated.Value(1)).current;
 
   const quickSave = () => {
-    Haptics.selectionAsync().catch(() => {});
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     saveCurrent(`Look ${scenes.length + 1}`);
     setSaved(true);
+    heartScale.stopAnimation();
+    heartScale.setValue(0.6);
+    Animated.spring(heartScale, { toValue: 1, friction: 3, tension: 140, useNativeDriver: true }).start();
     if (savedTimer.current) clearTimeout(savedTimer.current);
-    savedTimer.current = setTimeout(() => setSaved(false), 1400);
+    savedTimer.current = setTimeout(() => setSaved(false), 900);
   };
 
   const goSection = (m: Mode) => { setMode(m); setTab('control'); };
@@ -94,9 +102,10 @@ export function HomeScreen() {
 
       {/* Fixed top-left: quick-save heart + Scenes shortcut */}
       <View style={styles.topLeft}>
-        <Pressable onPress={quickSave} hitSlop={8} style={styles.heart}>
-          <Text style={[styles.heartIcon, { color: saved ? theme.err : theme.text }]}>{saved ? '♥' : '♡'}</Text>
-          {saved ? <Text style={styles.savedText}>Saved</Text> : null}
+        <Pressable onPress={quickSave} hitSlop={8} style={styles.iconBtn}>
+          <Animated.Text style={[styles.heartIcon, { color: saved ? theme.err : theme.text, transform: [{ scale: heartScale }] }]}>
+            {saved ? '♥' : '♡'}
+          </Animated.Text>
         </Pressable>
         <Pressable
           onPress={() => toggleTab('scenes')}
@@ -152,20 +161,8 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
   body: { flex: 1 },
-  topLeft: { position: 'absolute', top: 6, left: size.gap, zIndex: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  heart: {
-    height: 40,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: theme.border,
-    backgroundColor: theme.surface,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  heartIcon: { fontSize: 22, fontWeight: '900', marginTop: -2 },
-  savedText: { color: theme.err, fontSize: size.fontSm, fontWeight: '800' },
+  topLeft: { position: 'absolute', top: PILL_TOP, left: size.gap, zIndex: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  heartIcon: { fontSize: 24, fontWeight: '900', marginTop: -2 },
   iconBtn: {
     width: 44,
     height: 40,
@@ -177,7 +174,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconBtnActive: { backgroundColor: theme.accent, borderColor: theme.accent },
-  statusPill: { position: 'absolute', top: 6, right: size.gap, zIndex: 10 },
+  statusPill: { position: 'absolute', top: PILL_TOP, right: size.gap, zIndex: 10 },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -60,6 +60,8 @@ export interface Snapshot {
   discovered: DiscoveredDevice[];
   /** The running app-driven show (car-wide animation), or null. */
   show: string | null;
+  /** Seconds for a moving show (e.g. Spin) to travel a full lap around the car. */
+  showSpeed: number;
   /** Human-readable result of the last command fan-out (for the debug line). */
   lastWrite: string;
 }
