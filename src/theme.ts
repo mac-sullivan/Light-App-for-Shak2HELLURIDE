@@ -13,6 +13,15 @@ export const theme = {
   err: '#FF453A', // error / disconnected
   accent: '#8A5CFF',
   accentDim: '#3A2E66',
+  card: '#15151C', // floating panel fill (a touch lighter than bg so it reads without a border)
+};
+
+// Soft elevation shadows — used instead of hard borders for a cleaner, premium feel.
+export const shadow = {
+  card: { shadowColor: '#000000', shadowOpacity: 0.55, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 10 },
+  button: { shadowColor: '#000000', shadowOpacity: 0.45, shadowRadius: 9, shadowOffset: { width: 0, height: 5 }, elevation: 5 },
+  // A centered glow in the given colour — for active buttons/pills so they feel lit.
+  glow: (color: string) => ({ shadowColor: color, shadowOpacity: 0.7, shadowRadius: 14, shadowOffset: { width: 0, height: 0 }, elevation: 10 }),
 };
 
 // Touch-target sizing. Everything tappable should hit at least LG.

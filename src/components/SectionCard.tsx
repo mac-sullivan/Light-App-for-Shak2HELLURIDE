@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { size, theme } from '../theme';
+import { shadow, size, theme } from '../theme';
 
 export function SectionCard({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
@@ -13,12 +13,11 @@ export function SectionCard({ title, children }: { title?: string; children: Rea
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: theme.surface,
+    backgroundColor: theme.card,
     borderRadius: size.radius,
-    borderWidth: 1,
-    borderColor: theme.border,
     padding: size.gap,
     marginBottom: size.gap,
+    ...shadow.card,
   },
   title: {
     color: theme.textDim,

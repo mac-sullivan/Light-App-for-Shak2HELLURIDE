@@ -8,7 +8,7 @@ const PILL_TOP = Platform.OS === 'ios' ? 12 : 6;
 const PILL_SIDE = 18;
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { size, theme } from '../theme';
+import { shadow, size, theme } from '../theme';
 import { useLightManager } from '../hooks/useLightManager';
 import { useScenes } from '../hooks/useScenes';
 import { ControlPanel, type Mode } from './ControlPanel';
@@ -110,7 +110,7 @@ function SectionSwitcher({ current, onSelect }: { current: Mode | null; onSelect
           <Pressable
             key={m}
             onPress={() => { Haptics.selectionAsync().catch(() => {}); onSelect(m); }}
-            style={[styles.segItem, active && styles.segItemActive]}
+            style={[styles.segItem, active && [styles.segItemActive, shadow.glow(theme.accent)]]}
           >
             <Text style={[styles.segText, active && styles.segTextActive]}>{label}</Text>
           </Pressable>
@@ -195,7 +195,7 @@ export function HomeScreen() {
 
         <View style={styles.pillsRow}>
           <View style={styles.topLeft}>
-            <Pressable onPress={quickSave} hitSlop={8} style={styles.iconBtn}>
+            <Pressable onPress={quickSave} hitSlop={8} style={[styles.iconBtn, saved ? shadow.glow(theme.err) : shadow.button]}>
               <Animated.Text style={[styles.heartIcon, { color: saved ? theme.err : theme.text, transform: [{ scale: heartScale }] }]}>
                 {saved ? '♥' : '♡'}
               </Animated.Text>
@@ -203,7 +203,7 @@ export function HomeScreen() {
             <Pressable
               onPress={() => toggleTab('scenes')}
               hitSlop={8}
-              style={[styles.iconBtn, tab === 'scenes' && styles.iconBtnActive]}
+              style={[styles.iconBtn, tab === 'scenes' ? [styles.iconBtnActive, shadow.glow(theme.accent)] : shadow.button]}
             >
               <Ionicons name="albums-outline" size={22} color={tab === 'scenes' ? '#000' : theme.text} />
             </Pressable>
@@ -214,7 +214,7 @@ export function HomeScreen() {
             hitSlop={8}
             style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}
           >
-            <View style={[styles.pill, { borderColor: summaryColor }]}>
+            <View style={[styles.pill, shadow.glow(summaryColor)]}>
               <Ionicons name="bluetooth" size={17} color={summaryColor} />
               <Text style={[styles.count, { color: summaryColor }]}>
                 {connected}/{total}
@@ -230,7 +230,7 @@ export function HomeScreen() {
         <View style={styles.bottomRow}>
           <Pressable
             onPress={() => { Haptics.selectionAsync().catch(() => {}); manager.masterPower(!allOn); }}
-            style={[styles.powerBtn, allOn ? styles.powerOn : styles.powerOff]}
+            style={[styles.powerBtn, allOn ? [styles.powerOn, shadow.glow(theme.ok)] : [styles.powerOff, shadow.button]]}
           >
             <Ionicons name="power" size={28} color={allOn ? '#000' : theme.textDim} />
           </Pressable>
@@ -260,21 +260,18 @@ const styles = StyleSheet.create({
     width: 44,
     height: 40,
     borderRadius: 20,
-    borderWidth: 2,
-    borderColor: theme.border,
-    backgroundColor: theme.surface,
+    backgroundColor: theme.surfaceHi,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconBtnActive: { backgroundColor: theme.accent, borderColor: theme.accent },
+  iconBtnActive: { backgroundColor: theme.accent },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    borderWidth: 2,
     borderRadius: 20,
-    backgroundColor: theme.surface,
-    paddingHorizontal: 12,
+    backgroundColor: theme.surfaceHi,
+    paddingHorizontal: 14,
     height: 40,
   },
   count: { fontSize: size.fontMd, fontWeight: '900' },
@@ -282,19 +279,17 @@ const styles = StyleSheet.create({
   tabs: {
     gap: 8,
     paddingHorizontal: size.gap,
-    paddingTop: 8,
+    paddingTop: 10,
     paddingBottom: 6,
-    borderTopWidth: 1,
-    borderTopColor: theme.border,
-    backgroundColor: theme.surface,
+    backgroundColor: theme.bg,
   },
   targetStrong: { color: theme.text, fontWeight: '800' },
   bottomRow: { flexDirection: 'row', gap: 8, alignItems: 'stretch' },
-  powerBtn: { width: 68, borderRadius: 14, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  powerOn: { backgroundColor: theme.ok, borderColor: theme.ok },
-  powerOff: { backgroundColor: theme.surfaceHi, borderColor: theme.border },
+  powerBtn: { width: 68, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  powerOn: { backgroundColor: theme.ok },
+  powerOff: { backgroundColor: theme.surfaceHi },
   flex: { flex: 1 },
-  seg: { flexDirection: 'row', backgroundColor: theme.surfaceHi, borderRadius: 14, padding: 4, gap: 4 },
+  seg: { flexDirection: 'row', backgroundColor: theme.surfaceHi, borderRadius: 14, padding: 4, gap: 4, ...shadow.button },
   segItem: { flex: 1, paddingVertical: 18, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   segItemActive: { backgroundColor: theme.accent },
   segText: { color: theme.textDim, fontSize: 17, fontWeight: '800', letterSpacing: 0.2 },

@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { effectName } from '../effects';
 import { MAX_EFFECT, MIN_EFFECT } from '../protocol';
 import type { Scene } from '../storage';
-import { size, theme } from '../theme';
+import { shadow, size, theme } from '../theme';
 
 const ALL_MODES = Array.from({ length: MAX_EFFECT - MIN_EFFECT + 1 }, (_, i) => i + MIN_EFFECT);
 
@@ -28,7 +28,7 @@ export function EffectPad({
               <Pressable
                 key={s.id}
                 onPress={() => onApplyScene(s)}
-                style={({ pressed }) => [styles.cell, styles.sceneCell, { opacity: pressed ? 0.7 : 1 }]}
+                style={({ pressed }) => [styles.cell, styles.sceneCell, shadow.glow(theme.accent), { opacity: pressed ? 0.7 : 1 }]}
               >
                 <Text style={styles.cellName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
                   ♥ {s.name}
@@ -46,7 +46,7 @@ export function EffectPad({
           <Pressable
             key={m}
             onPress={() => onPick(m)}
-            style={({ pressed }) => [styles.cell, selected === m && styles.active, { opacity: pressed ? 0.7 : 1 }]}
+            style={({ pressed }) => [styles.cell, selected === m && [styles.active, shadow.glow(theme.accent)], { opacity: pressed ? 0.7 : 1 }]}
           >
             <Text style={styles.cellName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
               {effectName(m)}
@@ -68,15 +68,13 @@ const styles = StyleSheet.create({
     minHeight: 58,
     borderRadius: 12,
     backgroundColor: theme.surfaceHi,
-    borderWidth: 2,
-    borderColor: theme.border,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 6,
     paddingVertical: 6,
   },
-  sceneCell: { borderColor: theme.accent, backgroundColor: theme.accentDim },
+  sceneCell: { backgroundColor: theme.accentDim },
   cellName: { color: theme.text, fontSize: size.fontSm, fontWeight: '700', textAlign: 'center' },
   cellNum: { color: theme.textDim, fontSize: 12, marginTop: 2 },
-  active: { borderColor: theme.accent, backgroundColor: theme.accentDim },
+  active: { backgroundColor: theme.accentDim },
 });
