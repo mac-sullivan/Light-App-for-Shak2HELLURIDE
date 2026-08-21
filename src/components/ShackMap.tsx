@@ -15,10 +15,10 @@ const SLOTS: Slot[] = [
   { name: 'Left Skirt', left: 13, top: 22, w: 8, h: 64, vertical: true },
   { name: 'Right Skirt', left: 79, top: 22, w: 8, h: 64, vertical: true },
   { name: 'Right Siding', left: 89, top: 22, w: 8, h: 64, vertical: true },
-  // interior, top -> bottom: Balcony (center), ShakAssist (left), Back Stairs (center bottom)
-  { name: 'Balcony', left: 39, top: 26, w: 22, h: 12 },
-  { name: 'ShakAssist', left: 25, top: 45, w: 24, h: 15 },
-  { name: 'Back Stairs', left: 37, top: 68, w: 26, h: 16 },
+  // interior bottom: Balcony ahead of Stairs; ShakAssist directly left of Stairs
+  { name: 'Balcony', left: 38, top: 60, w: 24, h: 11 },
+  { name: 'ShakAssist', left: 12, top: 75, w: 24, h: 14 },
+  { name: 'Back Stairs', left: 38, top: 75, w: 24, h: 14 },
 ];
 
 const norm = (s: string) => s.toLowerCase().replace(/\s+/g, '');

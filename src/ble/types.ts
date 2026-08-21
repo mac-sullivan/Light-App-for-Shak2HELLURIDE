@@ -54,6 +54,8 @@ export interface Snapshot {
   selected: string[];
   /** Every BLE name seen while scanning, strongest signal first. */
   discovered: DiscoveredDevice[];
+  /** The running app-driven show (car-wide animation), or null. */
+  show: string | null;
   /** Human-readable result of the last command fan-out (for the debug line). */
   lastWrite: string;
 }

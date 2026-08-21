@@ -16,6 +16,15 @@ import { ShackMap } from './ShackMap';
 import { Groups } from './Groups';
 import { AdvancedSetup } from './AdvancedSetup';
 
+const SHOWS: { id: string; label: string }[] = [
+  { id: 'rainbow', label: 'Rainbow' },
+  { id: 'sweep', label: 'Sweep' },
+  { id: 'pulse', label: 'Pulse' },
+  { id: 'fire', label: 'Fire' },
+  { id: 'strobe', label: 'Strobe' },
+  { id: 'music', label: 'Music 🎵' },
+];
+
 export function ControlPanel() {
   const { snapshot, manager } = useLightManager();
   const { groups, saveGroup, deleteGroup } = useGroups();
@@ -119,24 +128,6 @@ export function ControlPanel() {
         </SectionCard>
       ) : (
         <SectionCard title={`Effects · ${targetLabel}`}>
-          {scenes.length > 0 ? (
-            <>
-              <Text style={styles.sliderLabel}>♥ Your scenes</Text>
-              <View style={styles.quickRow}>
-                {scenes.map((s) => (
-                  <BigButton
-                    key={s.id}
-                    label={`♥ ${s.name}`}
-                    onPress={() => applyScene(s)}
-                    small
-                    tone="accent"
-                    active
-                    style={styles.quick}
-                  />
-                ))}
-              </View>
-            </>
-          ) : null}
           <EffectPad
             selected={effect}
             showAll={showAllEffects}
@@ -145,6 +136,8 @@ export function ControlPanel() {
               setEffect(m);
               manager.masterEffect(m);
             }}
+            scenes={scenes}
+            onApplyScene={applyScene}
           />
           <Text style={styles.sliderLabel}>Speed</Text>
           <Slider
@@ -174,6 +167,26 @@ export function ControlPanel() {
           />
         </SectionCard>
       )}
+
+      {/* App-driven car-wide shows */}
+      <SectionCard title="Shows — whole shack">
+        <View style={styles.quickRow}>
+          {SHOWS.map((s) => (
+            <BigButton
+              key={s.id}
+              label={s.label}
+              onPress={() => (snapshot.show === s.id ? manager.stopShow() : manager.startShow(s.id))}
+              active={snapshot.show === s.id}
+              tone="accent"
+              small
+              style={styles.quick}
+            />
+          ))}
+        </View>
+        {snapshot.show ? (
+          <BigButton label="■ Stop show" onPress={() => manager.stopShow()} tone="off" small style={styles.stopShow} />
+        ) : null}
+      </SectionCard>
 
       {/* Advanced hardware setup (for odd strips like the Back Step pods) */}
       <SectionCard title="Advanced setup">
@@ -205,6 +218,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: size.gap, paddingTop: 54, paddingBottom: 48 },
   rowGap: { flexDirection: 'row', gap: size.gap, marginBottom: size.gap },
   selectAll: { marginBottom: size.gap },
+  stopShow: { marginTop: size.gap },
   flex: { flex: 1 },
   slider: { width: '100%', height: 56 },
   sliderLabel: { color: theme.textDim, fontSize: size.fontSm, fontWeight: '800', marginTop: 12, letterSpacing: 1 },

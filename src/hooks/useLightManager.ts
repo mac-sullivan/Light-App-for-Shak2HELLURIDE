@@ -1,6 +1,12 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import { lightManager } from '../ble/LightManager';
-import { DEFAULT_DEVICE_DEFS, loadDeviceDefs, saveDeviceDefs } from '../storage';
+import {
+  DEFAULT_DEVICE_DEFS,
+  loadDeviceDefs,
+  saveDeviceDefs,
+  loadLastLook,
+  saveLastLook,
+} from '../storage';
 import type { Snapshot } from '../ble/types';
 
 let loadedOnce = false;
@@ -23,8 +29,19 @@ export function useLightManager(): {
   useEffect(() => {
     if (loadedOnce) return;
     loadedOnce = true;
-    loadDeviceDefs().then((defs) => lightManager.setDevices(defs));
+    loadDeviceDefs().then((defs) => {
+      lightManager.setDevices(defs);
+      loadLastLook().then((look) => {
+        if (look) lightManager.restoreStates(look);
+      });
+    });
   }, []);
+
+  // Debounced persist of the current look, so we can restore it next launch.
+  useEffect(() => {
+    const t = setTimeout(() => void saveLastLook(lightManager.getLightStates()), 2000);
+    return () => clearTimeout(t);
+  }, [snapshot]);
 
   const persist = () => void saveDeviceDefs(lightManager.currentDefs());
 

@@ -7,7 +7,6 @@ import type { BtState } from '../ble/types';
 
 const ICON = require('../../assets/icon.png');
 
-// One subtle line on the intro each launch — quiet, not cheesy.
 const QUOTES = [
   'Give more than you take. Glow more than you burn.',
   'Slow down. This is the good part.',
@@ -17,7 +16,6 @@ const QUOTES = [
   'Be the reason someone believes in magic tonight.',
   'Tonight the desert belongs to the ones who show up.',
   'Say yes to the weird, beautiful thing.',
-  'Somewhere out here, a stranger becomes a friend.',
   'Built in the dark, made to shine.',
 ];
 
@@ -48,12 +46,7 @@ export function PermissionGate({
   }
   if (started && bt === 'PoweredOff') {
     return (
-      <Gate
-        title="Bluetooth is off"
-        body="Turn on Bluetooth to connect to the shack lights."
-        button="Open Settings"
-        onPress={() => Linking.openSettings()}
-      />
+      <Gate title="Bluetooth is off" body="Turn on Bluetooth to connect to the shack lights." button="Open Settings" onPress={() => Linking.openSettings()} />
     );
   }
   if (started && bt === 'Unsupported') {
@@ -63,25 +56,25 @@ export function PermissionGate({
   return <Intro quote={quote} onStart={onStart} />;
 }
 
-// Clean, centered, premium intro.
 function Intro({ quote, onStart }: { quote: string; onStart: () => void }) {
   return (
     <View style={styles.wrap}>
+      <LinearGradient colors={['#000000', '#070311', '#0e0720']} style={StyleSheet.absoluteFill} />
+
       <View style={styles.hero}>
-        <Image source={ICON} style={styles.icon} />
-        <Text style={styles.title}>Shack-To-Hell-U-Ride</Text>
+        <View style={styles.iconGlow}>
+          <Image source={ICON} style={styles.icon} />
+        </View>
+        <Text style={styles.name} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
+          Shack-To-Hell-U-Ride
+        </Text>
         <Text style={styles.subtitle}>LED CONTROLS</Text>
         <View style={styles.rule} />
         <Text style={styles.quote}>{quote}</Text>
       </View>
 
-      <Pressable onPress={onStart} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}>
-        <LinearGradient
-          colors={['#9a6bff', '#7C4DFF', '#5a34c9']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.cta}
-        >
+      <Pressable onPress={onStart} style={({ pressed }) => [styles.ctaGlow, { opacity: pressed ? 0.9 : 1 }]}>
+        <LinearGradient colors={['#8A5CFF', '#6E3BFF', '#A64BFF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cta}>
           <Text style={styles.ctaText}>LIGHT IT UP</Text>
         </LinearGradient>
       </Pressable>
@@ -89,10 +82,9 @@ function Intro({ quote, onStart }: { quote: string; onStart: () => void }) {
   );
 }
 
-// Plain gate used for the Bluetooth-off / blocked states.
 function Gate({ title, body, button, onPress }: { title: string; body: string; button?: string; onPress?: () => void }) {
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, { backgroundColor: theme.bg }]}>
       <View style={styles.hero}>
         <Text style={styles.gateTitle}>{title}</Text>
         <Text style={styles.body}>{body}</Text>
@@ -103,15 +95,31 @@ function Gate({ title, body, button, onPress }: { title: string; body: string; b
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: '#08080A', paddingHorizontal: 32, paddingTop: 40, paddingBottom: 40, justifyContent: 'space-between' },
+  wrap: { flex: 1, backgroundColor: '#000', paddingHorizontal: 32, paddingTop: 48, paddingBottom: 48, justifyContent: 'space-between' },
   hero: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  icon: { width: 112, height: 112, borderRadius: 28, marginBottom: 32 },
-  title: { color: theme.text, fontSize: 30, fontWeight: '800', letterSpacing: 0.5, textAlign: 'center' },
-  subtitle: { color: theme.textDim, fontSize: 13, fontWeight: '700', letterSpacing: 6, marginTop: 10 },
-  rule: { width: 40, height: 2, borderRadius: 1, backgroundColor: theme.accent, marginVertical: 28, opacity: 0.9 },
-  quote: { color: theme.textDim, fontSize: 16, fontStyle: 'italic', lineHeight: 24, textAlign: 'center', maxWidth: 300 },
+  iconGlow: {
+    marginBottom: 32,
+    shadowColor: '#8A5CFF',
+    shadowOpacity: 0.7,
+    shadowRadius: 30,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 20,
+  },
+  icon: { width: 116, height: 116, borderRadius: 28 },
+  name: { color: '#fff', fontSize: 34, fontWeight: '800', letterSpacing: 0.5, textAlign: 'center', alignSelf: 'stretch' },
+  subtitle: { color: '#b9a7ff', fontSize: 13, fontWeight: '700', letterSpacing: 7, marginTop: 14 },
+  rule: { width: 54, height: 1, backgroundColor: '#ffffff33', marginVertical: 28 },
+  quote: { color: theme.textDim, fontSize: 15, fontStyle: 'italic', lineHeight: 22, textAlign: 'center', maxWidth: 300, opacity: 0.85 },
+  ctaGlow: {
+    borderRadius: 999,
+    shadowColor: '#7C4DFF',
+    shadowOpacity: 0.6,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 12,
+  },
+  cta: { paddingVertical: 22, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  ctaText: { color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: 5 },
   gateTitle: { color: theme.text, fontSize: 28, fontWeight: '800', textAlign: 'center', marginBottom: 14 },
   body: { color: theme.textDim, fontSize: size.fontMd, lineHeight: 26, textAlign: 'center' },
-  cta: { paddingVertical: 22, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  ctaText: { color: '#fff', fontSize: 18, fontWeight: '800', letterSpacing: 4 },
 });

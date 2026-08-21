@@ -1,4 +1,5 @@
 import { PermissionsAndroid, Platform } from 'react-native';
+import { Audio } from 'expo-av';
 import { BleManager, Device, State as BlePlxState } from 'react-native-ble-plx';
 import {
   CHAR_UUID,
@@ -7,6 +8,7 @@ import {
   bytesToBase64,
   type RGB,
 } from '../protocol';
+import { hsvToRgb } from '../util/color';
 import {
   DEFAULT_LIGHT_STATE,
   type BtState,
@@ -27,6 +29,12 @@ const CHAR2_UUID = '0000ffe2-0000-1000-8000-00805f9b34fb';
 // ignores all commands until this "wake" is sent. Best-effort; failures ignored.
 const WAKE_FFE2 = Uint8Array.from([0x01, 0x00]);
 const WAKE_FFE1 = Uint8Array.from([0x01, 0xb7, 0xe3, 0xd5]);
+
+// Front-to-back order for sweeps/rainbows (matched by device label or name).
+const SHOW_ORDER = [
+  'Front Siding', 'Front Skirt', 'Left Siding', 'Right Siding',
+  'Left Skirt', 'Right Skirt', 'Balcony', 'ShakAssist', 'Back Stairs',
+];
 
 /**
  * Owns all BLE state for the art car. One instance for the whole app.
@@ -57,11 +65,18 @@ export class LightManager {
     scanning: false,
     selected: [],
     discovered: [],
+    show: null,
     lastWrite: '',
   };
 
   // Every BLE name seen while scanning -> latest signal (Nearby-lights picker).
   private discovered = new Map<string, number>();
+
+  // App-driven car-wide show engine.
+  private showName: string | null = null;
+  private showTimer: ReturnType<typeof setInterval> | null = null;
+  private showTick = 0;
+  private recording: Audio.Recording | null = null;
 
   // Per-device write method, chosen from the characteristic's actual properties.
   private writeMode = new Map<string, 'withoutResponse' | 'withResponse'>();
@@ -88,6 +103,7 @@ export class LightManager {
       discovered: [...this.discovered.entries()]
         .map(([name, rssi]) => ({ name, rssi }))
         .sort((a, b) => b.rssi - a.rssi),
+      show: this.showName,
       lastWrite: this.lastWrite,
     };
     this.listeners.forEach((cb) => cb());
@@ -517,6 +533,7 @@ export class LightManager {
 
   // ---- Master controls: apply to the current selection (or all strips). ----
   async masterPower(on: boolean) {
+    this.stopShow();
     const t = this.targets();
     t.forEach((d) => (d.power = on));
     this.emit();
@@ -524,6 +541,7 @@ export class LightManager {
   }
 
   async masterColor(color: RGB) {
+    this.stopShow();
     const t = this.targets();
     t.forEach((d) => {
       d.color = color;
@@ -544,6 +562,7 @@ export class LightManager {
   }
 
   async masterEffect(mode: number) {
+    this.stopShow();
     const t = this.targets();
     t.forEach((d) => {
       d.effect = mode;
@@ -561,6 +580,7 @@ export class LightManager {
   }
 
   async masterAutoCycle() {
+    this.stopShow();
     const t = this.targets();
     t.forEach((d) => (d.mode = 'auto'));
     this.emit();
@@ -606,6 +626,161 @@ export class LightManager {
     this.emit();
   }
 
+  // ---------------------------------------------------------- show engine
+  /** Start a car-wide, app-driven animation (or 'music' for mic-reactive). */
+  startShow(name: string) {
+    this.stopShow();
+    if (name === 'music') {
+      this.showName = 'music';
+      this.emit();
+      void this.startMusic();
+      return;
+    }
+    this.showName = name;
+    this.showTick = 0;
+    const t = this.connectedDevices();
+    void Promise.allSettled(
+      t.map((d) =>
+        this.writeTo(d, SP110E.power(true))
+          .then(() => this.writeTo(d, SP110E.staticMode()))
+          .catch(() => {})
+      )
+    );
+    const interval = name === 'strobe' ? 110 : 160;
+    this.showTimer = setInterval(() => void this.showStep(), interval);
+    this.emit();
+  }
+
+  stopShow() {
+    if (this.showTimer) {
+      clearInterval(this.showTimer);
+      this.showTimer = null;
+    }
+    if (this.recording) void this.stopMusic();
+    if (this.showName) {
+      this.showName = null;
+      this.emit();
+    }
+  }
+
+  private orderedTargets(): DeviceEntry[] {
+    const idx = (d: DeviceEntry) => {
+      const key = (d.label || d.name).toLowerCase();
+      const i = SHOW_ORDER.findIndex(
+        (n) => n.toLowerCase() === key || n.toLowerCase() === d.name.toLowerCase()
+      );
+      return i < 0 ? 999 : i;
+    };
+    return this.connectedDevices().sort((a, b) => idx(a) - idx(b));
+  }
+
+  private async showStep() {
+    const name = this.showName;
+    if (!name) return;
+    const t = this.orderedTargets();
+    const n = t.length;
+    if (n === 0) return;
+    const tick = this.showTick++;
+    const sends: Promise<void>[] = [];
+
+    if (name === 'rainbow') {
+      const base = (tick * 8) % 360;
+      t.forEach((d, i) =>
+        sends.push(this.writeTo(d, SP110E.color(hsvToRgb((base + (i * 360) / n) % 360, 1, 1))).catch(() => {}))
+      );
+    } else if (name === 'sweep') {
+      const band = tick % n;
+      const hue = (tick * 5) % 360;
+      t.forEach((d, i) => {
+        const dist = Math.min(Math.abs(i - band), n - Math.abs(i - band));
+        const v = dist === 0 ? 1 : dist === 1 ? 0.4 : 0.08;
+        sends.push(this.writeTo(d, SP110E.color(hsvToRgb(hue, 1, v))).catch(() => {}));
+      });
+    } else if (name === 'pulse') {
+      const v = Math.round((0.3 + 0.7 * (0.5 + 0.5 * Math.sin(tick * 0.35))) * 255);
+      t.forEach((d) => sends.push(this.writeTo(d, SP110E.brightness(v)).catch(() => {})));
+    } else if (name === 'fire') {
+      t.forEach((d) => {
+        const g = 15 + Math.floor(Math.random() * 95);
+        sends.push(this.writeTo(d, SP110E.color({ r: 255, g, b: 0 })).catch(() => {}));
+      });
+    } else if (name === 'strobe') {
+      const c = tick % 2 === 0 ? { r: 255, g: 255, b: 255 } : { r: 0, g: 0, b: 0 };
+      t.forEach((d) => sends.push(this.writeTo(d, SP110E.color(c)).catch(() => {})));
+    }
+    await Promise.allSettled(sends);
+  }
+
+  // ---- Music-reactive: pulse the whole car to the phone mic level. ----
+  private micHue = 0;
+  private micCount = 0;
+
+  private async startMusic() {
+    try {
+      const perm = await Audio.requestPermissionsAsync();
+      if (!perm.granted) {
+        this.lastWrite = 'mic permission denied';
+        this.showName = null;
+        this.emit();
+        return;
+      }
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const rec = new Audio.Recording();
+      await rec.prepareToRecordAsync({
+        ...Audio.RecordingOptionsPresets.LOW_QUALITY,
+        isMeteringEnabled: true,
+      } as Audio.RecordingOptions);
+      rec.setProgressUpdateInterval(130);
+      rec.setOnRecordingStatusUpdate((s) => this.onMic(s));
+      await rec.startAsync();
+      this.recording = rec;
+      const t = this.connectedDevices();
+      void Promise.allSettled(
+        t.map((d) =>
+          this.writeTo(d, SP110E.power(true))
+            .then(() => this.writeTo(d, SP110E.staticMode()))
+            .catch(() => {})
+        )
+      );
+    } catch (e) {
+      this.lastWrite = 'mic error: ' + errMsg(e);
+      this.showName = null;
+      this.emit();
+    }
+  }
+
+  private onMic(status: Audio.RecordingStatus) {
+    if (this.showName !== 'music' || !status.isRecording) return;
+    const metering = status.metering ?? -60; // dBFS
+    const level = Math.max(0, Math.min(1, (metering + 50) / 40));
+    const v = Math.round((0.12 + 0.88 * level) * 255);
+    const t = this.connectedDevices();
+    const sends = t.map((d) => this.writeTo(d, SP110E.brightness(v)).catch(() => {}));
+    if (this.micCount++ % 6 === 0) {
+      this.micHue = (this.micHue + 40) % 360;
+      const color = hsvToRgb(this.micHue, 1, 1);
+      t.forEach((d) => sends.push(this.writeTo(d, SP110E.color(color)).catch(() => {})));
+    }
+    void Promise.allSettled(sends);
+  }
+
+  private async stopMusic() {
+    const rec = this.recording;
+    this.recording = null;
+    if (rec) {
+      try {
+        await rec.stopAndUnloadAsync();
+      } catch {
+        /* ignore */
+      }
+      try {
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
   /** Per-strip power quick-toggle from the device row. */
   async devicePower(name: string, on: boolean) {
     const entry = this.byName.get(name);
@@ -636,8 +811,25 @@ export class LightManager {
     return out;
   }
 
+  /** Seed strip states from a saved look — applied on the next connect. */
+  restoreStates(states: Record<string, LightState>) {
+    for (const [name, s] of Object.entries(states)) {
+      const d = this.byName.get(name);
+      if (d && s) {
+        d.power = s.power;
+        d.mode = s.mode;
+        d.color = { ...s.color };
+        d.effect = s.effect;
+        d.brightness = s.brightness;
+        d.speed = s.speed;
+      }
+    }
+    this.emit();
+  }
+
   /** Apply a saved Scene: push each strip's saved state to what's connected. */
   async applyStates(states: Record<string, LightState>): Promise<void> {
+    this.stopShow();
     const targets = this.connectedDevices().filter((d) => states[d.name]);
     await Promise.allSettled(targets.map((d) => this.applyOneState(d, states[d.name]!)));
     this.lastWrite = `scene applied to ${targets.length}`;
@@ -646,6 +838,7 @@ export class LightManager {
 
   /** Apply one light state to EVERY connected strip (pre-made/uniform scenes). */
   async applyUniform(s: LightState): Promise<void> {
+    this.stopShow();
     const targets = this.connectedDevices();
     await Promise.allSettled(targets.map((d) => this.applyOneState(d, s)));
     this.lastWrite = `scene → ${targets.length}`;

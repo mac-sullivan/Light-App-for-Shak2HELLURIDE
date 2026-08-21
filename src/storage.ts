@@ -4,6 +4,7 @@ import type { LightState } from './ble/types';
 const NAMES_KEY = 'artcar.deviceDefs.v2';
 const SCENES_KEY = 'artcar.scenes.v1';
 const GROUPS_KEY = 'artcar.groups.v2';
+const LASTLOOK_KEY = 'artcar.lastLook.v1';
 
 /**
  * A strip the app controls. `name` is the exact BLE broadcast name we connect
@@ -66,7 +67,7 @@ export interface Scene {
 export const DEFAULT_SCENES: Scene[] = [
   {
     id: 'scene-hawty',
-    name: 'Hawty 🔥',
+    name: 'Hawty',
     states: {},
     uniform: {
       power: true,
@@ -124,6 +125,27 @@ export async function loadGroups(): Promise<Group[]> {
 export async function saveGroups(groups: Group[]): Promise<void> {
   try {
     await AsyncStorage.setItem(GROUPS_KEY, JSON.stringify(groups));
+  } catch {
+    // best-effort
+  }
+}
+
+/** The last look (each strip's state) so we can restore it on next launch. */
+export async function loadLastLook(): Promise<Record<string, LightState> | null> {
+  try {
+    const raw = await AsyncStorage.getItem(LASTLOOK_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') return parsed as Record<string, LightState>;
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+export async function saveLastLook(states: Record<string, LightState>): Promise<void> {
+  try {
+    await AsyncStorage.setItem(LASTLOOK_KEY, JSON.stringify(states));
   } catch {
     // best-effort
   }
