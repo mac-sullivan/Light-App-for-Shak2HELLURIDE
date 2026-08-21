@@ -10,6 +10,7 @@ import { BigButton } from './BigButton';
 import { SectionCard } from './SectionCard';
 import { ColorPicker } from './ColorPicker';
 import { EffectPad } from './EffectPad';
+import { StripSelector } from './StripSelector';
 
 // Ordered by vibe with the crowd-pleasers up top: hot/red first, then colorful,
 // then the calm ones, then party/alarm, then music.
@@ -38,7 +39,7 @@ const SHOWS: { id: string; label: string }[] = [
   { id: 'music', label: 'Music' },
 ];
 
-export type Mode = 'color' | 'effects' | 'shows';
+export type Mode = 'map' | 'color' | 'effects' | 'shows';
 
 export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) => void }) {
   const { snapshot, manager } = useLightManager();
@@ -61,6 +62,8 @@ export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) =
   const selKey = allSelected ? 'all' : snapshot.selected.join(',');
   const repRef = useRef(rep);
   repRef.current = rep;
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
   useEffect(() => {
     const r = repRef.current;
     if (r) {
@@ -69,8 +72,11 @@ export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) =
       setWhite(r.white);
       setSpeed(r.speed);
       setEffect(r.mode === 'effect' ? r.effect : undefined);
-      if (r.mode === 'effect' || r.mode === 'auto') onMode('effects');
-      else if (r.mode === 'solid') onMode('color');
+      // Don't yank the user off the Map page while they're picking strips.
+      if (modeRef.current !== 'map') {
+        if (r.mode === 'effect' || r.mode === 'auto') onMode('effects');
+        else if (r.mode === 'solid') onMode('color');
+      }
     }
   }, [selKey]);
 
@@ -90,6 +96,8 @@ export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) =
   return (
     <View style={styles.screen}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        {mode === 'map' ? <StripSelector /> : null}
+
         {/* Color/Effects/Shows stay mounted and just toggle visibility, so their
             sliders never re-mount and animate the thumb up from zero. */}
         <View style={mode === 'color' ? undefined : styles.hidden}>

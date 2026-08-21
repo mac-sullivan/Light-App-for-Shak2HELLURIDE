@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Animated, Easing, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 // Breathing room above the top pills. iOS sits below the safe-area notch inset;
@@ -15,11 +15,11 @@ import { useScenes } from '../hooks/useScenes';
 import { ControlPanel, type Mode } from './ControlPanel';
 import { ScenesPanel } from './ScenesPanel';
 import { DevicesPanel } from './DevicesPanel';
-import { StripSelector } from './StripSelector';
 
 type Tab = 'control' | 'scenes' | 'devices';
 
 const SECTIONS: [Mode, string][] = [
+  ['map', 'Map'],
   ['color', 'Color'],
   ['effects', 'Effects'],
   ['shows', 'Shows'],
@@ -142,7 +142,6 @@ export function HomeScreen() {
   const [mode, setMode] = useState<Mode>('color');
   const [saved, setSaved] = useState(false);
   const [fireKey, setFireKey] = useState(0);
-  const [selectorOpen, setSelectorOpen] = useState(false);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const heartScale = useRef(new Animated.Value(1)).current;
 
@@ -158,8 +157,8 @@ export function HomeScreen() {
     savedTimer.current = setTimeout(() => setSaved(false), 900);
   };
 
-  const goSection = (m: Mode) => { setMode(m); setTab('control'); setSelectorOpen(false); };
-  const toggleTab = (t: Tab) => { Haptics.selectionAsync().catch(() => {}); setSelectorOpen(false); setTab((cur) => (cur === t ? 'control' : t)); };
+  const goSection = (m: Mode) => { setMode(m); setTab('control'); };
+  const toggleTab = (t: Tab) => { Haptics.selectionAsync().catch(() => {}); setTab((cur) => (cur === t ? 'control' : t)); };
 
   const connected = snapshot.devices.filter((d) => d.state === 'connected').length;
   const total = snapshot.devices.length;
@@ -195,23 +194,16 @@ export function HomeScreen() {
     <View style={styles.root}>
       <View style={styles.body}>
         {tab === 'control' ? <ControlPanel mode={mode} onMode={setMode} /> : tab === 'scenes' ? <ScenesPanel /> : <DevicesPanel />}
-        {selectorOpen && tab === 'control' ? (
-          <View style={styles.selectorSheet}>
-            <ScrollView contentContainerStyle={styles.selectorContent} keyboardShouldPersistTaps="handled">
-              <StripSelector onDone={() => setSelectorOpen(false)} />
-            </ScrollView>
-          </View>
-        ) : null}
       </View>
 
       {/* Fixed top area: full-width 'Controlling…' row, then heart/scenes (left) + BT pill (right) */}
       <View style={styles.topBar} pointerEvents="box-none">
         {tab === 'control' ? (
-          <Pressable onPress={() => setSelectorOpen((o) => !o)} style={styles.topStatus} hitSlop={6}>
-            <Ionicons name={selectorOpen ? 'chevron-up' : 'locate'} size={12} color={theme.textDim} />
+          <Pressable onPress={() => goSection('map')} style={styles.topStatus} hitSlop={6}>
+            <Ionicons name="locate" size={12} color={theme.textDim} />
             <Text style={styles.centerText} numberOfLines={1}>
               Controlling <Text style={styles.targetStrong}>{controlling}</Text>
-              <Text style={styles.tapHint}>{selectorOpen ? '  ›  tap to close' : '  ›  tap to change'}</Text>
+              <Text style={styles.tapHint}>  ›  tap to change</Text>
             </Text>
           </Pressable>
         ) : null}
@@ -271,8 +263,6 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
   body: { flex: 1 },
-  selectorSheet: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: theme.bg, zIndex: 5 },
-  selectorContent: { paddingHorizontal: size.gap, paddingTop: 104, paddingBottom: 40 },
   burst: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50 },
   topBar: { position: 'absolute', top: PILL_TOP, left: 0, right: 0, zIndex: 10, paddingHorizontal: PILL_SIDE, gap: 16 },
   topStatus: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, alignSelf: 'stretch' },

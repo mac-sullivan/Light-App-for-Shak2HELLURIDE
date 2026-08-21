@@ -17,7 +17,7 @@ import type { DeviceEntry } from '../ble/types';
  * Pick which strips the Color/Effects controls target (map or list), manage the
  * map assignment, groups, and per-strip advanced setup.
  */
-export function StripSelector({ onDone }: { onDone: () => void }) {
+export function StripSelector({ onDone }: { onDone?: () => void }) {
   const { snapshot, manager } = useLightManager();
   const { assign, setSlot } = useMapAssign();
   const { groups, saveGroup, deleteGroup } = useGroups();
@@ -69,7 +69,7 @@ export function StripSelector({ onDone }: { onDone: () => void }) {
         {showAdvanced ? <AdvancedSetup targetLabel={targetLabel} onIcModel={(i) => manager.masterIcModel(i)} onPixels={(n) => manager.masterPixels(n)} /> : null}
       </SectionCard>
 
-      <BigButton label="Done" onPress={onDone} tone="accent" active style={styles.done} />
+      {onDone ? <BigButton label="Done" onPress={onDone} tone="accent" active style={styles.done} /> : null}
     </>
   );
 }
