@@ -181,47 +181,48 @@ export function HomeScreen() {
         {tab === 'control' ? <ControlPanel mode={mode} onMode={setMode} /> : tab === 'scenes' ? <ScenesPanel /> : <DevicesPanel />}
       </View>
 
-      {/* Fixed top status bar (edge to edge): heart + scenes · what you're controlling · BT pill */}
+      {/* Fixed top area: full-width 'Controlling…' row, then heart/scenes (left) + BT pill (right) */}
       <View style={styles.topBar} pointerEvents="box-none">
-        <View style={styles.topLeft}>
-          <Pressable onPress={quickSave} hitSlop={8} style={styles.iconBtn}>
-            <Animated.Text style={[styles.heartIcon, { color: saved ? theme.err : theme.text, transform: [{ scale: heartScale }] }]}>
-              {saved ? '♥' : '♡'}
-            </Animated.Text>
-          </Pressable>
-          <Pressable
-            onPress={() => toggleTab('scenes')}
-            hitSlop={8}
-            style={[styles.iconBtn, tab === 'scenes' && styles.iconBtnActive]}
-          >
-            <Ionicons name="albums-outline" size={22} color={tab === 'scenes' ? '#000' : theme.text} />
-          </Pressable>
-        </View>
-
         {tab === 'control' ? (
-          <Pressable onPress={() => goSection('map')} style={styles.centerStatus} hitSlop={6}>
+          <Pressable onPress={() => goSection('map')} style={styles.topStatus} hitSlop={6}>
             <Ionicons name="locate" size={12} color={theme.textDim} />
             <Text style={styles.centerText} numberOfLines={1}>
               Controlling <Text style={styles.targetStrong}>{controlling}</Text>
+              <Text style={styles.tapHint}>  ›  tap to change</Text>
             </Text>
           </Pressable>
-        ) : (
-          <View style={styles.centerStatus} />
-        )}
+        ) : null}
 
-        <Pressable
-          onPress={() => toggleTab('devices')}
-          hitSlop={8}
-          style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}
-        >
-          <View style={[styles.pill, { borderColor: summaryColor }]}>
-            <Ionicons name="bluetooth" size={17} color={summaryColor} />
-            <Text style={[styles.count, { color: summaryColor }]}>
-              {connected}/{total}
-            </Text>
-            {snapshot.scanning ? <Text style={styles.scan}>⟳</Text> : null}
+        <View style={styles.pillsRow}>
+          <View style={styles.topLeft}>
+            <Pressable onPress={quickSave} hitSlop={8} style={styles.iconBtn}>
+              <Animated.Text style={[styles.heartIcon, { color: saved ? theme.err : theme.text, transform: [{ scale: heartScale }] }]}>
+                {saved ? '♥' : '♡'}
+              </Animated.Text>
+            </Pressable>
+            <Pressable
+              onPress={() => toggleTab('scenes')}
+              hitSlop={8}
+              style={[styles.iconBtn, tab === 'scenes' && styles.iconBtnActive]}
+            >
+              <Ionicons name="albums-outline" size={22} color={tab === 'scenes' ? '#000' : theme.text} />
+            </Pressable>
           </View>
-        </Pressable>
+
+          <Pressable
+            onPress={() => toggleTab('devices')}
+            hitSlop={8}
+            style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}
+          >
+            <View style={[styles.pill, { borderColor: summaryColor }]}>
+              <Ionicons name="bluetooth" size={17} color={summaryColor} />
+              <Text style={[styles.count, { color: summaryColor }]}>
+                {connected}/{total}
+              </Text>
+              {snapshot.scanning ? <Text style={styles.scan}>⟳</Text> : null}
+            </View>
+          </Pressable>
+        </View>
       </View>
 
       {/* Bottom control bar — compact power toggle + the main sections, by the thumb */}
@@ -248,10 +249,12 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
   body: { flex: 1 },
   burst: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50 },
-  topBar: { position: 'absolute', top: PILL_TOP, left: 0, right: 0, zIndex: 10, flexDirection: 'row', alignItems: 'center', paddingHorizontal: PILL_SIDE, gap: 8 },
+  topBar: { position: 'absolute', top: PILL_TOP, left: 0, right: 0, zIndex: 10, paddingHorizontal: PILL_SIDE, gap: 8 },
+  topStatus: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, alignSelf: 'stretch' },
+  pillsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   topLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  centerStatus: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, marginHorizontal: 6 },
   centerText: { color: theme.textDim, fontSize: 13, fontWeight: '700', flexShrink: 1 },
+  tapHint: { color: theme.textDim, fontWeight: '700', opacity: 0.7 },
   heartIcon: { fontSize: 24, fontWeight: '900', marginTop: -2 },
   iconBtn: {
     width: 44,

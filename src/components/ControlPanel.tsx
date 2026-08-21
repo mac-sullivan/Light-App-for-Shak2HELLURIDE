@@ -200,7 +200,7 @@ export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) =
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: size.gap, paddingTop: 54, paddingBottom: 40 },
+  content: { paddingHorizontal: size.gap, paddingTop: 84, paddingBottom: 40 },
   hidden: { display: 'none' },
   rowGap: { flexDirection: 'row', gap: size.gap, marginBottom: size.gap },
   selectAll: { marginBottom: size.gap },

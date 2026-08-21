@@ -72,7 +72,7 @@ export function ScenesPanel() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
-  content: { paddingHorizontal: size.gap, paddingTop: 54, paddingBottom: 48 },
+  content: { paddingHorizontal: size.gap, paddingTop: 84, paddingBottom: 48 },
   title: { color: theme.text, fontSize: size.fontLg, fontWeight: '900' },
   sub: { color: theme.textDim, fontSize: size.fontSm, marginTop: 4, marginBottom: 16 },
   saveRow: { flexDirection: 'row', gap: 12, alignItems: 'center', marginBottom: 20 },
