@@ -1,14 +1,28 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { size, theme } from '../theme';
 import { useLightManager } from '../hooks/useLightManager';
 import { useScenes } from '../hooks/useScenes';
-import { BigButton } from './BigButton';
 import { ControlPanel } from './ControlPanel';
 import { ScenesPanel } from './ScenesPanel';
 import { DevicesPanel } from './DevicesPanel';
 
 type Tab = 'control' | 'scenes' | 'devices';
+type IconName = React.ComponentProps<typeof Ionicons>['name'];
+
+function NavTab({ icon, label, active, onPress }: { icon: IconName; label: string; active: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={() => { Haptics.selectionAsync().catch(() => {}); onPress(); }}
+      style={({ pressed }) => [styles.navTab, active && styles.navTabActive, { opacity: pressed ? 0.8 : 1 }]}
+    >
+      <Ionicons name={icon} size={22} color={active ? '#000' : theme.text} />
+      <Text style={[styles.navLabel, { color: active ? '#000' : theme.text }]}>{label}</Text>
+    </Pressable>
+  );
+}
 
 export function HomeScreen() {
   const { snapshot } = useLightManager();
@@ -57,12 +71,12 @@ export function HomeScreen() {
         </View>
       </View>
 
-      {/* Bottom tabs */}
+      {/* Bottom nav — Control centered as home */}
       <View style={styles.tabs}>
         <View style={styles.tabRow}>
-          <BigButton label="Control" active={tab === 'control'} onPress={() => setTab('control')} tone="accent" small style={styles.flex} />
-          <BigButton label="Scenes" active={tab === 'scenes'} onPress={() => setTab('scenes')} tone="accent" small style={styles.flex} />
-          <BigButton label="Devices" active={tab === 'devices'} onPress={() => setTab('devices')} tone="accent" small style={styles.flex} />
+          <NavTab icon="bookmark" label="Scenes" active={tab === 'scenes'} onPress={() => setTab('scenes')} />
+          <NavTab icon="options" label="Control" active={tab === 'control'} onPress={() => setTab('control')} />
+          <NavTab icon="bluetooth" label="Devices" active={tab === 'devices'} onPress={() => setTab('devices')} />
         </View>
       </View>
     </View>
@@ -114,4 +128,18 @@ const styles = StyleSheet.create({
   },
   tabRow: { flexDirection: 'row', gap: size.gap },
   flex: { flex: 1 },
+  navTab: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+    paddingVertical: 8,
+    minHeight: size.touchMd,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: theme.border,
+    backgroundColor: theme.surfaceHi,
+  },
+  navTabActive: { backgroundColor: theme.accent, borderColor: '#ffffff33' },
+  navLabel: { fontSize: 13, fontWeight: '800' },
 });

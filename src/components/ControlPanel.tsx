@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { HapticSlider as Slider } from './HapticSlider';
 import { size, theme } from '../theme';
 import { SEQUENCES, type RGB } from '../protocol';
@@ -43,6 +43,7 @@ export function ControlPanel() {
   const { groups, saveGroup, deleteGroup } = useGroups();
   const { scenes, applyScene } = useScenes();
   const { assign, setSlot } = useMapAssign();
+  const scrollRef = useRef<ScrollView>(null);
 
   const [mode, setMode] = useState<Mode>('color');
   const [color, setColor] = useState<RGB>({ r: 255, g: 0, b: 0 });
@@ -87,167 +88,126 @@ export function ControlPanel() {
   const sendWhite = useThrottledCallback((v: number) => manager.masterWhite(v), 80);
 
   const onSlotPress = (slot: string, dev?: DeviceEntry) => {
-    if (assignMode) {
-      setPendingSlot((p) => (p === slot ? null : slot));
-    } else if (dev) {
-      manager.toggleSelect(dev.name);
-    }
+    if (assignMode) setPendingSlot((p) => (p === slot ? null : slot));
+    else if (dev) manager.toggleSelect(dev.name);
   };
 
+  const brightnessSlider = (
+    <>
+      <Text style={styles.sliderLabel}>Brightness · {Math.round((brightness / 255) * 100)}%</Text>
+      <Slider minimumValue={0} maximumValue={255} value={brightness} step={1} minimumTrackTintColor={theme.warn} maximumTrackTintColor={theme.surfaceHi} thumbTintColor={theme.text}
+        onValueChange={(v) => { setBrightness(v); sendBrightness(v); }} onSlidingComplete={(v) => manager.masterBrightness(v)} style={styles.slider} />
+    </>
+  );
+
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      {/* Controlling */}
-      <SectionCard title={`Controlling · ${targetLabel}`}>
-        <BigButton label="Select all strips" onPress={() => manager.selectAll()} active={allSelected} tone="accent" small style={styles.selectAll} />
-        <View style={styles.rowGap}>
-          <BigButton label="Map" onPress={() => setPickMode('map')} active={pickMode === 'map'} tone="accent" small style={styles.flex} />
-          <BigButton label="List" onPress={() => setPickMode('list')} active={pickMode === 'list'} tone="accent" small style={styles.flex} />
+    <View style={styles.screen}>
+      {/* Pinned header: wordmark (scroll-to-top) + section switcher */}
+      <View style={styles.header}>
+        <Pressable onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })} hitSlop={8}>
+          <Text style={styles.logo}>SHAK·TO·HELL·U·RIDE</Text>
+        </Pressable>
+        <View style={styles.pills}>
+          <BigButton label="Color" onPress={() => setMode('color')} active={mode === 'color'} tone="accent" small style={styles.flex} />
+          <BigButton label="Effects" onPress={() => setMode('effects')} active={mode === 'effects'} tone="accent" small style={styles.flex} />
+          <BigButton label="Shows" onPress={() => setMode('shows')} active={mode === 'shows'} tone="accent" small style={styles.flex} />
         </View>
-
-        {pickMode === 'map' ? (
-          <>
-            <ShackMap
-              devices={snapshot.devices}
-              selected={snapshot.selected}
-              assign={assign}
-              assignMode={assignMode}
-              pendingSlot={pendingSlot}
-              show={snapshot.show}
-              onSlotPress={onSlotPress}
-            />
-            <BigButton
-              label={assignMode ? 'Done assigning' : 'Assign lights to map'}
-              onPress={() => { setAssignMode((a) => !a); setPendingSlot(null); }}
-              active={assignMode}
-              tone="accent"
-              small
-              style={styles.assignToggle}
-            />
-            {assignMode && pendingSlot ? (
-              <View style={styles.assignBox}>
-                <Text style={styles.assignTitle}>Assign “{pendingSlot}” to a light:</Text>
-                <View style={styles.quickRow}>
-                  {snapshot.devices.map((d) => (
-                    <BigButton
-                      key={d.name}
-                      label={d.label || d.name}
-                      onPress={() => { setSlot(pendingSlot, d.name); setPendingSlot(null); }}
-                      active={assign[pendingSlot] === d.name}
-                      tone="accent"
-                      small
-                      style={styles.quick}
-                    />
-                  ))}
-                  <BigButton label="Unassign" onPress={() => { setSlot(pendingSlot, null); setPendingSlot(null); }} tone="off" small style={styles.quick} />
-                </View>
-              </View>
-            ) : null}
-          </>
-        ) : (
-          <SelectionChips devices={snapshot.devices} selected={snapshot.selected} onToggle={(name) => manager.toggleSelect(name)} />
-        )}
-
-        <Groups
-          groups={groups}
-          selected={snapshot.selected}
-          onApply={(members) => manager.selectOnly(members)}
-          onSave={(name) => saveGroup(name, snapshot.selected)}
-          onDelete={deleteGroup}
-        />
-      </SectionCard>
-
-      {/* Power */}
-      <SectionCard title={`Power · ${targetLabel}`}>
-        <View style={styles.rowGap}>
-          <BigButton label="ON" onPress={() => manager.masterPower(true)} tone="on" active={allOn} style={styles.flex} />
-          <BigButton label="OFF" onPress={() => manager.masterPower(false)} tone="off" style={styles.flex} />
-        </View>
-      </SectionCard>
-
-      {/* Mode pills */}
-      <View style={styles.pills}>
-        <BigButton label="Color" onPress={() => setMode('color')} active={mode === 'color'} tone="accent" style={styles.flex} />
-        <BigButton label="Effects" onPress={() => setMode('effects')} active={mode === 'effects'} tone="accent" style={styles.flex} />
-        <BigButton label="Shows" onPress={() => setMode('shows')} active={mode === 'shows'} tone="accent" style={styles.flex} />
       </View>
 
-      {mode === 'color' ? (
-        <SectionCard title={`Color · ${targetLabel}`}>
-          <ColorPicker
-            key={selKey}
-            color={color}
-            onChange={(c) => { setColor(c); sendColor(c); }}
-            onComplete={(c) => manager.masterColor(c)}
-          />
-          <Text style={styles.sliderLabel}>Brightness · {Math.round((brightness / 255) * 100)}%</Text>
-          <Slider minimumValue={0} maximumValue={255} value={brightness} step={1} minimumTrackTintColor={theme.warn} maximumTrackTintColor={theme.surfaceHi} thumbTintColor={theme.text}
-            onValueChange={(v) => { setBrightness(v); sendBrightness(v); }} onSlidingComplete={(v) => manager.masterBrightness(v)} style={styles.slider} />
-          <Text style={styles.sliderLabel}>White · {Math.round((white / 255) * 100)}%  (RGBW pods only)</Text>
-          <Slider minimumValue={0} maximumValue={255} value={white} step={1} minimumTrackTintColor={theme.text} maximumTrackTintColor={theme.surfaceHi} thumbTintColor={theme.text}
-            onValueChange={(v) => { setWhite(v); sendWhite(v); }} onSlidingComplete={(v) => manager.masterWhite(v)} style={styles.slider} />
-          <Text style={styles.sliderLabel}>Color order — tap until red looks red</Text>
-          <View style={styles.quickRow}>
-            {SEQUENCES.map((s, i) => (
-              <BigButton key={s} label={s} onPress={() => manager.masterSequence(i)} active={rep?.sequence === i} tone="accent" small style={styles.quick} />
-            ))}
+      <ScrollView ref={scrollRef} style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        {/* Section content — the thing you tweak most, up top */}
+        {mode === 'color' ? (
+          <SectionCard title={`Color · ${targetLabel}`}>
+            <ColorPicker key={selKey} color={color} onChange={(c) => { setColor(c); sendColor(c); }} onComplete={(c) => manager.masterColor(c)} />
+            {brightnessSlider}
+            <Text style={styles.sliderLabel}>White · {Math.round((white / 255) * 100)}%  (RGBW pods only)</Text>
+            <Slider minimumValue={0} maximumValue={255} value={white} step={1} minimumTrackTintColor={theme.text} maximumTrackTintColor={theme.surfaceHi} thumbTintColor={theme.text}
+              onValueChange={(v) => { setWhite(v); sendWhite(v); }} onSlidingComplete={(v) => manager.masterWhite(v)} style={styles.slider} />
+            <Text style={styles.sliderLabel}>Color order — tap until red looks red</Text>
+            <View style={styles.quickRow}>
+              {SEQUENCES.map((s, i) => (
+                <BigButton key={s} label={s} onPress={() => manager.masterSequence(i)} active={rep?.sequence === i} tone="accent" small style={styles.quick} />
+              ))}
+            </View>
+          </SectionCard>
+        ) : mode === 'effects' ? (
+          <SectionCard title={`Effects · ${targetLabel}`}>
+            <BigButton label="Auto cycle (all effects)" onPress={() => { setEffect(0); manager.masterAutoCycle(); }} active={rep?.mode === 'auto'} tone="accent" small style={styles.autoBtn} />
+            <EffectPad selected={effect} showAll={showAllEffects} onToggleAll={() => setShowAllEffects((s) => !s)} onPick={(m) => { setEffect(m); manager.masterEffect(m); }} scenes={scenes} onApplyScene={applyScene} />
+            <Text style={styles.sliderLabel}>Speed</Text>
+            <Slider minimumValue={0} maximumValue={255} value={speed} step={1} minimumTrackTintColor={theme.accent} maximumTrackTintColor={theme.surfaceHi} thumbTintColor={theme.text}
+              onValueChange={(v) => { setSpeed(v); sendSpeed(v); }} onSlidingComplete={(v) => manager.masterSpeed(v)} style={styles.slider} />
+            {brightnessSlider}
+          </SectionCard>
+        ) : (
+          <SectionCard title="Shows — whole shack">
+            <Text style={styles.showHint}>Car-wide animations across every strip (ignores your selection).</Text>
+            <View style={styles.quickRow}>
+              {SHOWS.map((s) => (
+                <BigButton key={s.id} label={s.label} onPress={() => (snapshot.show === s.id ? manager.stopShow() : manager.startShow(s.id))} active={snapshot.show === s.id} tone="accent" small style={styles.showBtn} />
+              ))}
+            </View>
+            {snapshot.show ? <BigButton label="Stop show" onPress={() => manager.stopShow()} tone="off" active small style={styles.stopShow} /> : null}
+          </SectionCard>
+        )}
+
+        {/* Power */}
+        <SectionCard title={`Power · ${targetLabel}`}>
+          <View style={styles.rowGap}>
+            <BigButton label="ON" onPress={() => manager.masterPower(true)} tone="on" active={allOn} style={styles.flex} />
+            <BigButton label="OFF" onPress={() => manager.masterPower(false)} tone="off" style={styles.flex} />
           </View>
         </SectionCard>
-      ) : mode === 'effects' ? (
-        <SectionCard title={`Effects · ${targetLabel}`}>
-          <BigButton label="Auto cycle (all effects)" onPress={() => { setEffect(0); manager.masterAutoCycle(); }} active={rep?.mode === 'auto'} tone="accent" small style={styles.autoBtn} />
-          <EffectPad
-            selected={effect}
-            showAll={showAllEffects}
-            onToggleAll={() => setShowAllEffects((s) => !s)}
-            onPick={(m) => { setEffect(m); manager.masterEffect(m); }}
-            scenes={scenes}
-            onApplyScene={applyScene}
-          />
-          <Text style={styles.sliderLabel}>Speed</Text>
-          <Slider minimumValue={0} maximumValue={255} value={speed} step={1} minimumTrackTintColor={theme.accent} maximumTrackTintColor={theme.surfaceHi} thumbTintColor={theme.text}
-            onValueChange={(v) => { setSpeed(v); sendSpeed(v); }} onSlidingComplete={(v) => manager.masterSpeed(v)} style={styles.slider} />
-          <Text style={styles.sliderLabel}>Brightness · {Math.round((brightness / 255) * 100)}%</Text>
-          <Slider minimumValue={0} maximumValue={255} value={brightness} step={1} minimumTrackTintColor={theme.warn} maximumTrackTintColor={theme.surfaceHi} thumbTintColor={theme.text}
-            onValueChange={(v) => { setBrightness(v); sendBrightness(v); }} onSlidingComplete={(v) => manager.masterBrightness(v)} style={styles.slider} />
-        </SectionCard>
-      ) : (
-        <SectionCard title="Shows — whole shack">
-          <Text style={styles.showHint}>Car-wide animations across every strip (ignores your selection).</Text>
-          <View style={styles.quickRow}>
-            {SHOWS.map((s) => (
-              <BigButton
-                key={s.id}
-                label={s.label}
-                onPress={() => (snapshot.show === s.id ? manager.stopShow() : manager.startShow(s.id))}
-                active={snapshot.show === s.id}
-                tone="accent"
-                small
-                style={styles.showBtn}
-              />
-            ))}
+
+        {/* Controlling — who the controls target */}
+        <SectionCard title={`Controlling · ${targetLabel}`}>
+          <BigButton label="Select all strips" onPress={() => manager.selectAll()} active={allSelected} tone="accent" small style={styles.selectAll} />
+          <View style={styles.rowGap}>
+            <BigButton label="Map" onPress={() => setPickMode('map')} active={pickMode === 'map'} tone="accent" small style={styles.flex} />
+            <BigButton label="List" onPress={() => setPickMode('list')} active={pickMode === 'list'} tone="accent" small style={styles.flex} />
           </View>
-          {snapshot.show ? <BigButton label="Stop show" onPress={() => manager.stopShow()} tone="off" active small style={styles.stopShow} /> : null}
+          {pickMode === 'map' ? (
+            <>
+              <ShackMap devices={snapshot.devices} selected={snapshot.selected} assign={assign} assignMode={assignMode} pendingSlot={pendingSlot} show={snapshot.show} onSlotPress={onSlotPress} />
+              <BigButton label={assignMode ? 'Done assigning' : 'Assign lights to map'} onPress={() => { setAssignMode((a) => !a); setPendingSlot(null); }} active={assignMode} tone="accent" small style={styles.assignToggle} />
+              {assignMode && pendingSlot ? (
+                <View style={styles.assignBox}>
+                  <Text style={styles.assignTitle}>Assign “{pendingSlot}” to a light:</Text>
+                  <View style={styles.quickRow}>
+                    {snapshot.devices.map((d) => (
+                      <BigButton key={d.name} label={d.label || d.name} onPress={() => { setSlot(pendingSlot, d.name); setPendingSlot(null); }} active={assign[pendingSlot] === d.name} tone="accent" small style={styles.quick} />
+                    ))}
+                    <BigButton label="Unassign" onPress={() => { setSlot(pendingSlot, null); setPendingSlot(null); }} tone="off" small style={styles.quick} />
+                  </View>
+                </View>
+              ) : null}
+            </>
+          ) : (
+            <SelectionChips devices={snapshot.devices} selected={snapshot.selected} onToggle={(name) => manager.toggleSelect(name)} />
+          )}
+          <Groups groups={groups} selected={snapshot.selected} onApply={(members) => manager.selectOnly(members)} onSave={(name) => saveGroup(name, snapshot.selected)} onDelete={deleteGroup} />
         </SectionCard>
-      )}
 
-      {/* Advanced */}
-      <SectionCard title="Advanced setup">
-        <BigButton label={showAdvanced ? 'Hide advanced' : 'LED type · pixel count'} onPress={() => setShowAdvanced((s) => !s)} active={showAdvanced} tone="accent" small />
-        {showAdvanced ? (
-          <AdvancedSetup targetLabel={targetLabel} onIcModel={(i) => manager.masterIcModel(i)} onPixels={(n) => manager.masterPixels(n)} />
-        ) : null}
-      </SectionCard>
+        {/* Advanced */}
+        <SectionCard title="Advanced setup">
+          <BigButton label={showAdvanced ? 'Hide advanced' : 'LED type · pixel count'} onPress={() => setShowAdvanced((s) => !s)} active={showAdvanced} tone="accent" small />
+          {showAdvanced ? <AdvancedSetup targetLabel={targetLabel} onIcModel={(i) => manager.masterIcModel(i)} onPixels={(n) => manager.masterPixels(n)} /> : null}
+        </SectionCard>
 
-      {snapshot.lastWrite ? <Text style={styles.debug}>last command: {snapshot.lastWrite}</Text> : null}
-    </ScrollView>
+        {snapshot.lastWrite ? <Text style={styles.debug}>last command: {snapshot.lastWrite}</Text> : null}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
-  content: { paddingHorizontal: size.gap, paddingTop: 54, paddingBottom: 48 },
+  header: { paddingTop: 50, paddingHorizontal: size.gap, paddingBottom: 10, backgroundColor: theme.bg, borderBottomWidth: 1, borderBottomColor: theme.border },
+  logo: { color: theme.accent, fontSize: 14, fontWeight: '900', letterSpacing: 2, textAlign: 'center', marginBottom: 10 },
+  pills: { flexDirection: 'row', gap: size.gap },
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: size.gap, paddingTop: size.gap, paddingBottom: 48 },
   rowGap: { flexDirection: 'row', gap: size.gap, marginBottom: size.gap },
-  pills: { flexDirection: 'row', gap: size.gap, marginBottom: size.gap },
   selectAll: { marginBottom: size.gap },
   stopShow: { marginTop: size.gap },
   autoBtn: { marginBottom: 10 },

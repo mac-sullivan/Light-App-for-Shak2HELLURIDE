@@ -17,7 +17,9 @@
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "This app talks to the art car's LED controllers over Bluetooth. It never uses the internet.",
         "NSBluetoothPeripheralUsageDescription": "This app talks to the art car's LED controllers over Bluetooth. It never uses the internet.",
-        "UIBackgroundModes": ["bluetooth-central"],
+        "UIBackgroundModes": [
+          "bluetooth-central"
+        ],
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -33,7 +35,9 @@
         "react-native-ble-plx",
         {
           "isBackgroundEnabled": true,
-          "modes": ["central"],
+          "modes": [
+            "central"
+          ],
           "neverForLocation": true,
           "bluetoothAlwaysPermission": "This app talks to the art car's LED controllers over Bluetooth. It never uses the internet."
         }
@@ -52,7 +56,8 @@
         {
           "microphonePermission": "This app uses the microphone only for the music-reactive light mode. Audio never leaves your phone."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {

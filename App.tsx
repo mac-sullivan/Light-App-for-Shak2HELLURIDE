@@ -1,5 +1,5 @@
 import React from 'react';
-import { SafeAreaView, StyleSheet } from 'react-native';
+import { Platform, SafeAreaView, StatusBar as RNStatusBar, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useKeepAwake } from 'expo-keep-awake';
 import { theme } from './src/theme';
@@ -23,5 +23,11 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.bg },
+  root: {
+    flex: 1,
+    backgroundColor: theme.bg,
+    // SafeAreaView only insets the notch on iOS; on Android push content below
+    // the status bar so the pinned pills don't overlap the battery/clock.
+    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 0,
+  },
 });
