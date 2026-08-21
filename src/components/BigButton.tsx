@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { shadow, size, theme } from '../theme';
+import { size, theme } from '../theme';
 
 type Props = {
   label: string;
@@ -38,8 +38,8 @@ export function BigButton({ label, onPress, active, tone = 'default', small, sty
       style={({ pressed }) => [
         styles.base,
         small ? styles.small : styles.large,
-        active ? shadow.glow(bg) : shadow.button,
         { backgroundColor: bg, opacity: disabled ? 0.4 : pressed ? 0.7 : 1 },
+        active && styles.activeBorder,
         style,
       ]}
     >
@@ -62,8 +62,11 @@ const styles = StyleSheet.create({
     borderRadius: size.radius,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: theme.border,
   },
   large: { minHeight: size.touchLg, paddingHorizontal: 20 },
   small: { minHeight: size.touchMd, paddingHorizontal: 16 },
+  activeBorder: { borderColor: '#ffffff33' },
   label: { fontWeight: '800', letterSpacing: 0.5 },
 });
