@@ -66,6 +66,19 @@ export function HomeScreen() {
   );
   const allOn = powerTargets.length > 0 && powerTargets.every((d) => d.power);
 
+  // A plain-language summary of what the color/effects controls will change right now
+  const controlling = useMemo(() => {
+    if (mode === 'shows') return 'the whole car';
+    if (allSelected) return 'all strips';
+    const names = snapshot.selected.map((n) => {
+      const d = snapshot.devices.find((x) => x.name === n);
+      return d?.label || n;
+    });
+    if (names.length === 0) return 'all strips';
+    if (names.length <= 2) return names.join(', ');
+    return `${names.length} strips`;
+  }, [mode, allSelected, snapshot.selected, snapshot.devices]);
+
   const summaryColor = useMemo(() => {
     if (total === 0) return theme.textDim;
     if (connected === 0) return theme.err;
@@ -111,6 +124,15 @@ export function HomeScreen() {
 
       {/* Bottom control bar — compact power toggle + the main sections, by the thumb */}
       <View style={styles.tabs}>
+        {tab === 'control' ? (
+          <Pressable onPress={() => goSection('map')} style={styles.targetLine} hitSlop={6}>
+            <Ionicons name="locate" size={13} color={theme.textDim} />
+            <Text style={styles.targetText}>
+              Controlling <Text style={styles.targetStrong}>{controlling}</Text>
+              {mode === 'shows' ? '' : '  ›  tap to change'}
+            </Text>
+          </Pressable>
+        ) : null}
         <View style={styles.bottomRow}>
           <Pressable
             onPress={() => { Haptics.selectionAsync().catch(() => {}); manager.masterPower(!allOn); }}
@@ -178,6 +200,9 @@ const styles = StyleSheet.create({
     borderTopColor: theme.border,
     backgroundColor: theme.surface,
   },
+  targetLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  targetText: { color: theme.textDim, fontSize: 13, fontWeight: '700' },
+  targetStrong: { color: theme.text, fontWeight: '800' },
   bottomRow: { flexDirection: 'row', gap: 8, alignItems: 'stretch' },
   powerBtn: { width: 58, borderRadius: 14, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   powerOn: { backgroundColor: theme.ok, borderColor: theme.ok },
