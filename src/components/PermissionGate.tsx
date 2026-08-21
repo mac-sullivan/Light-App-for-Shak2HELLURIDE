@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useMemo } from 'react';
+import { Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { size, theme } from '../theme';
 import { BigButton } from './BigButton';
@@ -87,27 +87,13 @@ export function PermissionGate({
 }
 
 function Intro({ quote, onStart }: { quote: string; onStart: () => void }) {
-  // The man dances: a looping sway + bob + gentle pulse.
-  const dance = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.timing(dance, { toValue: 1, duration: 1500, easing: Easing.linear, useNativeDriver: true })
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [dance]);
-
-  const rotate = dance.interpolate({ inputRange: [0, 0.25, 0.5, 0.75, 1], outputRange: ['0deg', '9deg', '0deg', '-9deg', '0deg'] });
-  const translateY = dance.interpolate({ inputRange: [0, 0.25, 0.5, 0.75, 1], outputRange: [0, -8, 0, -8, 0] });
-  const scale = dance.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1.06, 1] });
-
   return (
     <View style={styles.wrap}>
       <LinearGradient colors={['#000000', '#070311', '#0e0720']} style={StyleSheet.absoluteFill} />
 
       <View style={styles.hero}>
         <View style={styles.iconGlow}>
-          <Animated.Image source={ICON} style={[styles.icon, { transform: [{ translateY }, { rotate }, { scale }] }]} />
+          <Image source={ICON} style={styles.icon} />
         </View>
         <Text style={styles.name} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
           Shack-To-Hell-U-Ride

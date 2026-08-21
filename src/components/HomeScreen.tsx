@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 // Breathing room above the top pills. iOS sits below the safe-area notch inset;
 // Android sits below its status bar (root already pads for that) — both get space.
@@ -30,62 +31,77 @@ const FW_COLORS = ['#FFD166', '#FF5DA2', '#8A5CFF', '#4CD6E3', '#00E676', '#FF45
 
 function makeBurst(id: number, width: number, height: number): Burst {
   const color = FW_COLORS[Math.floor(Math.random() * FW_COLORS.length)]!;
-  const count = 16 + Math.floor(Math.random() * 8);
-  const radius = 70 + Math.random() * 90;
+  const count = 24 + Math.floor(Math.random() * 14);
+  const radius = 110 + Math.random() * 130;
   const jitter = Math.random() * 0.3;
   const particles: Particle[] = Array.from({ length: count }, (_, i) => ({
     angle: (i / count) * Math.PI * 2 + jitter,
-    distance: radius * (0.72 + Math.random() * 0.5),
-    size: 5 + Math.random() * 4,
+    distance: radius * (0.7 + Math.random() * 0.6),
+    size: 5 + Math.random() * 5,
     // Mostly the burst colour with an occasional white sparkle.
-    color: Math.random() < 0.18 ? '#FFFFFF' : color,
+    color: Math.random() < 0.2 ? '#FFFFFF' : color,
   }));
   return {
     id,
-    x: width * (0.15 + Math.random() * 0.7),
-    y: height * (0.12 + Math.random() * 0.5),
-    delay: Math.random() * 650,
-    duration: 900 + Math.random() * 500,
+    x: width * (0.12 + Math.random() * 0.76),
+    y: height * (0.1 + Math.random() * 0.58),
+    delay: Math.random() * 1500,
+    duration: 1200 + Math.random() * 700,
     anim: new Animated.Value(0),
     color,
     particles,
   };
 }
 
-// Full-screen fireworks (iMessage-style) — fired when the quick-save heart is tapped.
+// Full-screen fireworks (iMessage-style) over a fading dark overlay — fired on quick-save.
 function Fireworks({ fireKey }: { fireKey: number }) {
   const { width, height } = useWindowDimensions();
   const [bursts, setBursts] = useState<Burst[]>([]);
+  const overlay = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (fireKey === 0) return;
-    const items = Array.from({ length: 6 }, (_, i) => makeBurst(fireKey * 100 + i, width, height));
+    const items = Array.from({ length: 12 }, (_, i) => makeBurst(fireKey * 100 + i, width, height));
+    const maxEnd = Math.max(...items.map((b) => b.delay + b.duration));
     setBursts(items);
     Animated.parallel(
       items.map((b) =>
         Animated.timing(b.anim, { toValue: 1, duration: b.duration, delay: b.delay, easing: Easing.out(Easing.cubic), useNativeDriver: true })
       )
     ).start(() => setBursts([]));
-  }, [fireKey, width, height]);
+
+    // Dark gradient behind the fireworks: fades in fast, holds, fades out with the finale.
+    overlay.setValue(0);
+    Animated.sequence([
+      Animated.timing(overlay, { toValue: 1, duration: 320, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+      Animated.delay(Math.max(0, maxEnd - 320 - 850)),
+      Animated.timing(overlay, { toValue: 0, duration: 850, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+    ]).start();
+  }, [fireKey, width, height, overlay]);
 
   if (bursts.length === 0) return null;
   return (
     <View pointerEvents="none" style={styles.burst}>
+      {/* Dimming gradient over the whole app; fireworks render on top of it */}
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: overlay }]}>
+        <LinearGradient colors={['rgba(6,2,18,0.55)', 'rgba(0,0,0,0.82)']} style={StyleSheet.absoluteFill} />
+      </Animated.View>
+
       {bursts.map((b) => {
-        const flashOpacity = b.anim.interpolate({ inputRange: [0, 0.08, 0.32], outputRange: [0.95, 0.6, 0], extrapolate: 'clamp' });
-        const flashScale = b.anim.interpolate({ inputRange: [0, 0.32], outputRange: [0.4, 2.6], extrapolate: 'clamp' });
+        const flashOpacity = b.anim.interpolate({ inputRange: [0, 0.08, 0.34], outputRange: [1, 0.7, 0], extrapolate: 'clamp' });
+        const flashScale = b.anim.interpolate({ inputRange: [0, 0.34], outputRange: [0.4, 3.2], extrapolate: 'clamp' });
         return (
           <View key={b.id} style={{ position: 'absolute', left: b.x, top: b.y }}>
             {/* Bright initial pop */}
             <Animated.View
-              style={{ position: 'absolute', left: -13, top: -13, width: 26, height: 26, borderRadius: 13, backgroundColor: b.color, opacity: flashOpacity, transform: [{ scale: flashScale }] }}
+              style={{ position: 'absolute', left: -16, top: -16, width: 32, height: 32, borderRadius: 16, backgroundColor: b.color, opacity: flashOpacity, transform: [{ scale: flashScale }] }}
             />
             {b.particles.map((p, i) => {
               const translateX = b.anim.interpolate({ inputRange: [0, 1], outputRange: [0, Math.cos(p.angle) * p.distance] });
               // Outward travel plus a bit of gravity so the tails droop as they fade.
-              const translateY = b.anim.interpolate({ inputRange: [0, 1], outputRange: [0, Math.sin(p.angle) * p.distance + 55] });
-              const opacity = b.anim.interpolate({ inputRange: [0, 0.15, 0.7, 1], outputRange: [1, 1, 0.9, 0] });
-              const scale = b.anim.interpolate({ inputRange: [0, 0.12, 1], outputRange: [0.2, 1, 0.55] });
+              const translateY = b.anim.interpolate({ inputRange: [0, 1], outputRange: [0, Math.sin(p.angle) * p.distance + 75] });
+              const opacity = b.anim.interpolate({ inputRange: [0, 0.12, 0.75, 1], outputRange: [1, 1, 0.85, 0] });
+              const scale = b.anim.interpolate({ inputRange: [0, 0.1, 1], outputRange: [0.2, 1, 0.5] });
               return (
                 <Animated.View
                   key={i}
