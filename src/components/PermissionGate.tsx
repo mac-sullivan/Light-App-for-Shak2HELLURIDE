@@ -19,6 +19,36 @@ const QUOTES = [
   'Built in the dark, made to shine.',
 ];
 
+// RN has no `text-wrap: balance`, so even out the lines ourselves: split the
+// words across the number of lines the text needs, keeping each line a similar
+// length so the last line never dangles a single word.
+function balanceText(text: string, perLine = 34): string {
+  const words = text.split(' ');
+  if (words.length < 3) return text;
+  const lines = Math.ceil(text.length / perLine);
+  if (lines < 2) return text;
+  const target = text.length / lines;
+  const out: string[] = [];
+  let cur = '';
+  for (const w of words) {
+    const tentative = cur ? cur.length + 1 + w.length : w.length;
+    if (cur && tentative > target && out.length < lines - 1) {
+      // break on whichever side leaves the line length closest to the target
+      if (Math.abs(tentative - target) < Math.abs(cur.length - target)) {
+        out.push(cur + ' ' + w);
+        cur = '';
+      } else {
+        out.push(cur);
+        cur = w;
+      }
+    } else {
+      cur = cur ? cur + ' ' + w : w;
+    }
+  }
+  if (cur) out.push(cur);
+  return out.join('\n');
+}
+
 export function PermissionGate({
   bt,
   started,
@@ -70,7 +100,7 @@ function Intro({ quote, onStart }: { quote: string; onStart: () => void }) {
         </Text>
         <Text style={styles.subtitle}>LED CONTROLS</Text>
         <View style={styles.rule} />
-        <Text style={styles.quote}>{quote}</Text>
+        <Text style={styles.quote}>{balanceText(quote)}</Text>
       </View>
 
       <Pressable onPress={onStart} style={({ pressed }) => [styles.ctaGlow, { opacity: pressed ? 0.9 : 1 }]}>

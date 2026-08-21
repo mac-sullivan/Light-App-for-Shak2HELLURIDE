@@ -49,7 +49,6 @@ export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) =
   const [white, setWhite] = useState(0);
   const [effect, setEffect] = useState<number | undefined>(undefined);
   const [speed, setSpeed] = useState(180);
-  const [showAllEffects, setShowAllEffects] = useState(false);
   const [pickMode, setPickMode] = useState<'map' | 'list'>('map');
   const [assignMode, setAssignMode] = useState(false);
   const [pendingSlot, setPendingSlot] = useState<string | null>(null);
@@ -158,7 +157,7 @@ export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) =
             <Text style={styles.sliderLabel}>Speed</Text>
             <Slider minimumValue={0} maximumValue={255} value={speed} step={1} minimumTrackTintColor={theme.accent} maximumTrackTintColor={theme.surfaceHi} thumbTintColor={theme.text}
               onValueChange={(v) => { setSpeed(v); sendSpeed(v); }} onSlidingComplete={(v) => manager.masterSpeed(v)} style={styles.slider} />
-            <EffectPad selected={effect} showAll={showAllEffects} onToggleAll={() => setShowAllEffects((s) => !s)} onPick={(m) => { setEffect(m); manager.masterEffect(m); }} scenes={scenes} onApplyScene={applyScene} />
+            <EffectPad selected={effect} onPick={(m) => { setEffect(m); manager.masterEffect(m); }} scenes={scenes} onApplyScene={applyScene} />
           </SectionCard>
         ) : (
           <SectionCard title="Shows — whole shack">
