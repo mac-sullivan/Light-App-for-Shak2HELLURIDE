@@ -8,6 +8,7 @@ import { useScenes } from '../hooks/useScenes';
 import { ControlPanel, type Mode } from './ControlPanel';
 import { ScenesPanel } from './ScenesPanel';
 import { DevicesPanel } from './DevicesPanel';
+import { BigButton } from './BigButton';
 
 type Tab = 'control' | 'scenes' | 'devices';
 
@@ -38,7 +39,7 @@ function SectionSwitcher({ current, onSelect }: { current: Mode | null; onSelect
 }
 
 export function HomeScreen() {
-  const { snapshot } = useLightManager();
+  const { snapshot, manager } = useLightManager();
   const { scenes, saveCurrent } = useScenes();
   const [tab, setTab] = useState<Tab>('control');
   const [mode, setMode] = useState<Mode>('color');
@@ -58,6 +59,13 @@ export function HomeScreen() {
 
   const connected = snapshot.devices.filter((d) => d.state === 'connected').length;
   const total = snapshot.devices.length;
+
+  // Master power reflects the strips the controls currently target (all, or the selection)
+  const allSelected = snapshot.selected.length === 0;
+  const powerTargets = snapshot.devices.filter(
+    (d) => d.state === 'connected' && (allSelected || snapshot.selected.includes(d.name))
+  );
+  const allOn = powerTargets.length > 0 && powerTargets.every((d) => d.power);
 
   const summaryColor = useMemo(() => {
     if (total === 0) return theme.textDim;
@@ -102,8 +110,14 @@ export function HomeScreen() {
         </View>
       </Pressable>
 
-      {/* Bottom control bar — the main sections, right by the thumb */}
+      {/* Bottom control bar — master power + the main sections, right by the thumb */}
       <View style={styles.tabs}>
+        {tab === 'control' ? (
+          <View style={styles.powerRow}>
+            <BigButton label="ON" onPress={() => manager.masterPower(true)} tone="on" active={allOn} small style={styles.flex} />
+            <BigButton label="OFF" onPress={() => manager.masterPower(false)} tone="off" small style={styles.flex} />
+          </View>
+        ) : null}
         <SectionSwitcher current={tab === 'control' ? mode : null} onSelect={goSection} />
       </View>
     </View>
@@ -153,6 +167,7 @@ const styles = StyleSheet.create({
   count: { fontSize: size.fontMd, fontWeight: '900' },
   scan: { color: theme.warn, fontSize: 15, fontWeight: '900' },
   tabs: {
+    gap: 8,
     paddingHorizontal: size.gap,
     paddingTop: 8,
     paddingBottom: 6,
@@ -160,6 +175,8 @@ const styles = StyleSheet.create({
     borderTopColor: theme.border,
     backgroundColor: theme.surface,
   },
+  powerRow: { flexDirection: 'row', gap: size.gap },
+  flex: { flex: 1 },
   seg: { flexDirection: 'row', backgroundColor: theme.surfaceHi, borderRadius: 14, padding: 4, gap: 4 },
   segItem: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   segItemActive: { backgroundColor: theme.accent },

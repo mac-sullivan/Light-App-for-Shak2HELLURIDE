@@ -60,7 +60,6 @@ export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) =
   const targetDevices = snapshot.devices.filter(
     (d) => d.state === 'connected' && (allSelected || selectedSet.has(d.name))
   );
-  const allOn = targetDevices.length > 0 && targetDevices.every((d) => d.power);
   const targetLabel = allSelected ? 'All strips' : `${snapshot.selected.length} selected`;
 
   const rep = targetDevices[0];
@@ -101,14 +100,6 @@ export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) =
   return (
     <View style={styles.screen}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        {/* Power — always right at the top, whatever section you're in */}
-        <SectionCard title={`Power · ${targetLabel}`}>
-          <View style={styles.rowGap}>
-            <BigButton label="ON" onPress={() => manager.masterPower(true)} tone="on" active={allOn} style={styles.flex} />
-            <BigButton label="OFF" onPress={() => manager.masterPower(false)} tone="off" style={styles.flex} />
-          </View>
-        </SectionCard>
-
         {mode === 'map' ? (
           <>
             {/* Map — pick which strips the color/effects controls will change */}
@@ -163,15 +154,15 @@ export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) =
         ) : mode === 'effects' ? (
           <SectionCard title={`Effects · ${targetLabel}`}>
             <BigButton label="Auto cycle (all effects)" onPress={() => { setEffect(0); manager.masterAutoCycle(); }} active={rep?.mode === 'auto'} tone="accent" small style={styles.autoBtn} />
-            <EffectPad selected={effect} showAll={showAllEffects} onToggleAll={() => setShowAllEffects((s) => !s)} onPick={(m) => { setEffect(m); manager.masterEffect(m); }} scenes={scenes} onApplyScene={applyScene} />
+            {brightnessSlider}
             <Text style={styles.sliderLabel}>Speed</Text>
             <Slider minimumValue={0} maximumValue={255} value={speed} step={1} minimumTrackTintColor={theme.accent} maximumTrackTintColor={theme.surfaceHi} thumbTintColor={theme.text}
               onValueChange={(v) => { setSpeed(v); sendSpeed(v); }} onSlidingComplete={(v) => manager.masterSpeed(v)} style={styles.slider} />
-            {brightnessSlider}
+            <EffectPad selected={effect} showAll={showAllEffects} onToggleAll={() => setShowAllEffects((s) => !s)} onPick={(m) => { setEffect(m); manager.masterEffect(m); }} scenes={scenes} onApplyScene={applyScene} />
           </SectionCard>
         ) : (
           <SectionCard title="Shows — whole shack">
-            <Text style={styles.showHint}>Car-wide animations across every strip (ignores your selection).</Text>
+            <Text style={styles.showHint}>App-driven light shows that take over the whole car. A show overrides your color &amp; effect on every strip until you stop it — it runs car-wide, not just your selected strips.</Text>
             <View style={styles.quickRow}>
               {SHOWS.map((s) => (
                 <BigButton key={s.id} label={s.label} onPress={() => (snapshot.show === s.id ? manager.stopShow() : manager.startShow(s.id))} active={snapshot.show === s.id} tone="accent" small style={styles.showBtn} />
