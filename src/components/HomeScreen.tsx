@@ -24,77 +24,76 @@ const SECTIONS: [Mode, string][] = [
   ['shows', 'Shows'],
 ];
 
-type Heart = {
-  id: number; x: number; sizePx: number; delay: number; duration: number; emoji: string;
-  anim: Animated.Value; jitterX: number[]; flicker: number[]; stretch: number[];
-};
-const HEART_EMOJI = ['💜', '💖', '💗', '💝', '💕', '🩷']; // pink & purple only
-const STEPS = Array.from({ length: 14 }, (_, i) => i / 13); // keyframe positions 0..1
+type Particle = { angle: number; distance: number; size: number; color: string };
+type Burst = { id: number; x: number; y: number; delay: number; duration: number; anim: Animated.Value; color: string; particles: Particle[] };
+const FW_COLORS = ['#FFD166', '#FF5DA2', '#8A5CFF', '#4CD6E3', '#00E676', '#FF453A', '#FFFFFF'];
 
-function makeHeart(id: number, width: number): Heart {
-  const drift = (Math.random() * 2 - 1) * 42;
-  // Horizontal path with a glitchy stutter (random jumps) layered over a gentle sway.
-  const jitterX = STEPS.map((s, idx) => {
-    const sway = drift * Math.sin(s * Math.PI);
-    const jump = idx === 0 || idx === STEPS.length - 1 ? 0 : (Math.random() * 2 - 1) * 18;
-    return sway + jump;
-  });
-  // Flicker on/off like a glitch, fading out over the last stretch of the fall.
-  const flicker = STEPS.map((s, idx) => {
-    if (idx === 0) return 0;
-    if (s > 0.86) return Math.max(0, 1 - (s - 0.86) / 0.14);
-    return Math.random() < 0.32 ? 0.15 : 1;
-  });
-  // Occasional horizontal stretch for a digital-glitch feel.
-  const stretch = STEPS.map(() => {
-    const r = Math.random();
-    return r < 0.15 ? 0.65 : r > 0.85 ? 1.35 : 1;
-  });
+function makeBurst(id: number, width: number, height: number): Burst {
+  const color = FW_COLORS[Math.floor(Math.random() * FW_COLORS.length)]!;
+  const count = 16 + Math.floor(Math.random() * 8);
+  const radius = 70 + Math.random() * 90;
+  const jitter = Math.random() * 0.3;
+  const particles: Particle[] = Array.from({ length: count }, (_, i) => ({
+    angle: (i / count) * Math.PI * 2 + jitter,
+    distance: radius * (0.72 + Math.random() * 0.5),
+    size: 5 + Math.random() * 4,
+    // Mostly the burst colour with an occasional white sparkle.
+    color: Math.random() < 0.18 ? '#FFFFFF' : color,
+  }));
   return {
     id,
-    x: Math.random() * width,
-    sizePx: 18 + Math.random() * 30,
-    delay: Math.random() * 500,
-    duration: 1600 + Math.random() * 1500,
-    emoji: HEART_EMOJI[Math.floor(Math.random() * HEART_EMOJI.length)]!,
+    x: width * (0.15 + Math.random() * 0.7),
+    y: height * (0.12 + Math.random() * 0.5),
+    delay: Math.random() * 650,
+    duration: 900 + Math.random() * 500,
     anim: new Animated.Value(0),
-    jitterX,
-    flicker,
-    stretch,
+    color,
+    particles,
   };
 }
 
-// Full-screen shower of pink/purple hearts glitching their way down — fired on quick-save.
-function HeartsBurst({ fireKey }: { fireKey: number }) {
+// Full-screen fireworks (iMessage-style) — fired when the quick-save heart is tapped.
+function Fireworks({ fireKey }: { fireKey: number }) {
   const { width, height } = useWindowDimensions();
-  const [hearts, setHearts] = useState<Heart[]>([]);
+  const [bursts, setBursts] = useState<Burst[]>([]);
 
   useEffect(() => {
     if (fireKey === 0) return;
-    const items = Array.from({ length: 36 }, (_, i) => makeHeart(fireKey * 100 + i, width));
-    setHearts(items);
+    const items = Array.from({ length: 6 }, (_, i) => makeBurst(fireKey * 100 + i, width, height));
+    setBursts(items);
     Animated.parallel(
-      items.map((h) =>
-        Animated.timing(h.anim, { toValue: 1, duration: h.duration, delay: h.delay, easing: Easing.in(Easing.quad), useNativeDriver: true })
+      items.map((b) =>
+        Animated.timing(b.anim, { toValue: 1, duration: b.duration, delay: b.delay, easing: Easing.out(Easing.cubic), useNativeDriver: true })
       )
-    ).start(() => setHearts([]));
-  }, [fireKey, width]);
+    ).start(() => setBursts([]));
+  }, [fireKey, width, height]);
 
-  if (hearts.length === 0) return null;
+  if (bursts.length === 0) return null;
   return (
     <View pointerEvents="none" style={styles.burst}>
-      {hearts.map((h) => {
-        const translateY = h.anim.interpolate({ inputRange: [0, 1], outputRange: [-60, height + 60] });
-        const translateX = h.anim.interpolate({ inputRange: STEPS, outputRange: h.jitterX });
-        const scaleX = h.anim.interpolate({ inputRange: STEPS, outputRange: h.stretch });
-        const opacity = h.anim.interpolate({ inputRange: STEPS, outputRange: h.flicker });
+      {bursts.map((b) => {
+        const flashOpacity = b.anim.interpolate({ inputRange: [0, 0.08, 0.32], outputRange: [0.95, 0.6, 0], extrapolate: 'clamp' });
+        const flashScale = b.anim.interpolate({ inputRange: [0, 0.32], outputRange: [0.4, 2.6], extrapolate: 'clamp' });
         return (
-          <Animated.Text
-            key={h.id}
-            style={{ position: 'absolute', left: h.x, fontSize: h.sizePx, transform: [{ translateY }, { translateX }, { scaleX }], opacity }}
-          >
-            {h.emoji}
-          </Animated.Text>
+          <View key={b.id} style={{ position: 'absolute', left: b.x, top: b.y }}>
+            {/* Bright initial pop */}
+            <Animated.View
+              style={{ position: 'absolute', left: -13, top: -13, width: 26, height: 26, borderRadius: 13, backgroundColor: b.color, opacity: flashOpacity, transform: [{ scale: flashScale }] }}
+            />
+            {b.particles.map((p, i) => {
+              const translateX = b.anim.interpolate({ inputRange: [0, 1], outputRange: [0, Math.cos(p.angle) * p.distance] });
+              // Outward travel plus a bit of gravity so the tails droop as they fade.
+              const translateY = b.anim.interpolate({ inputRange: [0, 1], outputRange: [0, Math.sin(p.angle) * p.distance + 55] });
+              const opacity = b.anim.interpolate({ inputRange: [0, 0.15, 0.7, 1], outputRange: [1, 1, 0.9, 0] });
+              const scale = b.anim.interpolate({ inputRange: [0, 0.12, 1], outputRange: [0.2, 1, 0.55] });
+              return (
+                <Animated.View
+                  key={i}
+                  style={{ position: 'absolute', width: p.size, height: p.size, borderRadius: p.size / 2, backgroundColor: p.color, transform: [{ translateX }, { translateY }, { scale }], opacity }}
+                />
+              );
+            })}
+          </View>
         );
       })}
     </View>
@@ -240,7 +239,7 @@ export function HomeScreen() {
         </View>
       </View>
 
-      <HeartsBurst fireKey={fireKey} />
+      <Fireworks fireKey={fireKey} />
     </View>
   );
 }
