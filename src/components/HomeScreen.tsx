@@ -10,18 +10,23 @@ import { ScenesPanel } from './ScenesPanel';
 import { DevicesPanel } from './DevicesPanel';
 
 type Tab = 'control' | 'scenes' | 'devices';
-type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
-function SectionSwitcher({ mode, onMode }: { mode: Mode; onMode: (m: Mode) => void }) {
-  const items: [Mode, string][] = [['color', 'Color'], ['effects', 'Effects'], ['shows', 'Shows']];
+const SECTIONS: [Mode, string][] = [
+  ['map', 'Map'],
+  ['color', 'Color'],
+  ['effects', 'Effects'],
+  ['shows', 'Shows'],
+];
+
+function SectionSwitcher({ current, onSelect }: { current: Mode | null; onSelect: (m: Mode) => void }) {
   return (
     <View style={styles.seg}>
-      {items.map(([m, label]) => {
-        const active = mode === m;
+      {SECTIONS.map(([m, label]) => {
+        const active = current === m;
         return (
           <Pressable
             key={m}
-            onPress={() => { Haptics.selectionAsync().catch(() => {}); onMode(m); }}
+            onPress={() => { Haptics.selectionAsync().catch(() => {}); onSelect(m); }}
             style={[styles.segItem, active && styles.segItemActive]}
           >
             <Text style={[styles.segText, active && styles.segTextActive]}>{label}</Text>
@@ -29,18 +34,6 @@ function SectionSwitcher({ mode, onMode }: { mode: Mode; onMode: (m: Mode) => vo
         );
       })}
     </View>
-  );
-}
-
-function NavTab({ icon, label, active, onPress }: { icon: IconName; label: string; active: boolean; onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={() => { Haptics.selectionAsync().catch(() => {}); onPress(); }}
-      style={({ pressed }) => [styles.navTab, active && styles.navTabActive, { opacity: pressed ? 0.8 : 1 }]}
-    >
-      <Ionicons name={icon} size={22} color={active ? '#000' : theme.text} />
-      <Text style={[styles.navLabel, { color: active ? '#000' : theme.text }]}>{label}</Text>
-    </Pressable>
   );
 }
 
@@ -53,11 +46,15 @@ export function HomeScreen() {
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const quickSave = () => {
+    Haptics.selectionAsync().catch(() => {});
     saveCurrent(`Look ${scenes.length + 1}`);
     setSaved(true);
     if (savedTimer.current) clearTimeout(savedTimer.current);
     savedTimer.current = setTimeout(() => setSaved(false), 1400);
   };
+
+  const goSection = (m: Mode) => { setMode(m); setTab('control'); };
+  const toggleTab = (t: Tab) => { Haptics.selectionAsync().catch(() => {}); setTab((cur) => (cur === t ? 'control' : t)); };
 
   const connected = snapshot.devices.filter((d) => d.state === 'connected').length;
   const total = snapshot.devices.length;
@@ -75,14 +72,27 @@ export function HomeScreen() {
         {tab === 'control' ? <ControlPanel mode={mode} onMode={setMode} /> : tab === 'scenes' ? <ScenesPanel /> : <DevicesPanel />}
       </View>
 
-      {/* Fixed heart quick-save, pinned to the top-left corner */}
-      <Pressable onPress={quickSave} hitSlop={10} style={styles.heart}>
-        <Text style={[styles.heartIcon, { color: saved ? theme.err : theme.text }]}>{saved ? '♥' : '♡'}</Text>
-        {saved ? <Text style={styles.savedText}>Saved</Text> : null}
-      </Pressable>
+      {/* Fixed top-left: quick-save heart + Scenes shortcut */}
+      <View style={styles.topLeft}>
+        <Pressable onPress={quickSave} hitSlop={8} style={styles.heart}>
+          <Text style={[styles.heartIcon, { color: saved ? theme.err : theme.text }]}>{saved ? '♥' : '♡'}</Text>
+          {saved ? <Text style={styles.savedText}>Saved</Text> : null}
+        </Pressable>
+        <Pressable
+          onPress={() => toggleTab('scenes')}
+          hitSlop={8}
+          style={[styles.iconBtn, tab === 'scenes' && styles.iconBtnActive]}
+        >
+          <Ionicons name="albums-outline" size={22} color={tab === 'scenes' ? '#000' : theme.text} />
+        </Pressable>
+      </View>
 
-      {/* Fixed status pill, always pinned to the top-right corner */}
-      <View style={styles.statusPill} pointerEvents="none">
+      {/* Fixed top-right: connection pill — tap to open Devices */}
+      <Pressable
+        onPress={() => toggleTab('devices')}
+        hitSlop={8}
+        style={({ pressed }) => [styles.statusPill, { opacity: pressed ? 0.75 : 1 }]}
+      >
         <View style={[styles.pill, { borderColor: summaryColor }]}>
           <View style={[styles.dot, { backgroundColor: summaryColor }]} />
           <Text style={[styles.count, { color: summaryColor }]}>
@@ -90,16 +100,11 @@ export function HomeScreen() {
           </Text>
           {snapshot.scanning ? <Text style={styles.scan}>⟳</Text> : null}
         </View>
-      </View>
+      </Pressable>
 
-      {/* Bottom bars — the most-tapped switcher sits right above the nav, by the thumb */}
+      {/* Bottom control bar — the main sections, right by the thumb */}
       <View style={styles.tabs}>
-        {tab === 'control' ? <SectionSwitcher mode={mode} onMode={setMode} /> : null}
-        <View style={styles.tabRow}>
-          <NavTab icon="bookmark" label="Scenes" active={tab === 'scenes'} onPress={() => setTab('scenes')} />
-          <NavTab icon="options" label="Control" active={tab === 'control'} onPress={() => setTab('control')} />
-          <NavTab icon="bluetooth" label="Devices" active={tab === 'devices'} onPress={() => setTab('devices')} />
-        </View>
+        <SectionSwitcher current={tab === 'control' ? mode : null} onSelect={goSection} />
       </View>
     </View>
   );
@@ -108,11 +113,8 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
   body: { flex: 1 },
+  topLeft: { position: 'absolute', top: 6, left: size.gap, zIndex: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
   heart: {
-    position: 'absolute',
-    top: 6,
-    left: size.gap,
-    zIndex: 10,
     height: 40,
     paddingHorizontal: 12,
     borderRadius: 20,
@@ -125,6 +127,17 @@ const styles = StyleSheet.create({
   },
   heartIcon: { fontSize: 22, fontWeight: '900', marginTop: -2 },
   savedText: { color: theme.err, fontSize: size.fontSm, fontWeight: '800' },
+  iconBtn: {
+    width: 44,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: theme.border,
+    backgroundColor: theme.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconBtnActive: { backgroundColor: theme.accent, borderColor: theme.accent },
   statusPill: { position: 'absolute', top: 6, right: size.gap, zIndex: 10 },
   pill: {
     flexDirection: 'row',
@@ -140,7 +153,6 @@ const styles = StyleSheet.create({
   count: { fontSize: size.fontMd, fontWeight: '900' },
   scan: { color: theme.warn, fontSize: 15, fontWeight: '900' },
   tabs: {
-    gap: 8,
     paddingHorizontal: size.gap,
     paddingTop: 8,
     paddingBottom: 6,
@@ -148,25 +160,9 @@ const styles = StyleSheet.create({
     borderTopColor: theme.border,
     backgroundColor: theme.surface,
   },
-  tabRow: { flexDirection: 'row', gap: size.gap },
-  flex: { flex: 1 },
   seg: { flexDirection: 'row', backgroundColor: theme.surfaceHi, borderRadius: 14, padding: 4, gap: 4 },
   segItem: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   segItemActive: { backgroundColor: theme.accent },
-  segText: { color: theme.textDim, fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
+  segText: { color: theme.textDim, fontSize: 15, fontWeight: '800', letterSpacing: 0.2 },
   segTextActive: { color: '#000' },
-  navTab: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
-    paddingVertical: 8,
-    minHeight: size.touchMd,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: theme.border,
-    backgroundColor: theme.surfaceHi,
-  },
-  navTabActive: { backgroundColor: theme.accent, borderColor: '#ffffff33' },
-  navLabel: { fontSize: 13, fontWeight: '800' },
 });

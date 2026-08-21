@@ -36,7 +36,7 @@ const SHOWS: { id: string; label: string }[] = [
   { id: 'music', label: 'Music 🎵' },
 ];
 
-export type Mode = 'color' | 'effects' | 'shows';
+export type Mode = 'map' | 'color' | 'effects' | 'shows';
 
 export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) => void }) {
   const { snapshot, manager } = useLightManager();
@@ -101,8 +101,52 @@ export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) =
   return (
     <View style={styles.screen}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        {/* Section content — the thing you tweak most, up top */}
-        {mode === 'color' ? (
+        {/* Power — always right at the top, whatever section you're in */}
+        <SectionCard title={`Power · ${targetLabel}`}>
+          <View style={styles.rowGap}>
+            <BigButton label="ON" onPress={() => manager.masterPower(true)} tone="on" active={allOn} style={styles.flex} />
+            <BigButton label="OFF" onPress={() => manager.masterPower(false)} tone="off" style={styles.flex} />
+          </View>
+        </SectionCard>
+
+        {mode === 'map' ? (
+          <>
+            {/* Map — pick which strips the color/effects controls will change */}
+            <SectionCard title={`Select strips · ${targetLabel}`}>
+              <BigButton label="Select all strips" onPress={() => manager.selectAll()} active={allSelected} tone="accent" small style={styles.selectAll} />
+              <View style={styles.rowGap}>
+                <BigButton label="Map" onPress={() => setPickMode('map')} active={pickMode === 'map'} tone="accent" small style={styles.flex} />
+                <BigButton label="List" onPress={() => setPickMode('list')} active={pickMode === 'list'} tone="accent" small style={styles.flex} />
+              </View>
+              {pickMode === 'map' ? (
+                <>
+                  <ShackMap devices={snapshot.devices} selected={snapshot.selected} assign={assign} assignMode={assignMode} pendingSlot={pendingSlot} show={snapshot.show} onSlotPress={onSlotPress} />
+                  <BigButton label={assignMode ? 'Done assigning' : 'Assign lights to map'} onPress={() => { setAssignMode((a) => !a); setPendingSlot(null); }} active={assignMode} tone="accent" small style={styles.assignToggle} />
+                  {assignMode && pendingSlot ? (
+                    <View style={styles.assignBox}>
+                      <Text style={styles.assignTitle}>Assign “{pendingSlot}” to a light:</Text>
+                      <View style={styles.quickRow}>
+                        {snapshot.devices.map((d) => (
+                          <BigButton key={d.name} label={d.label || d.name} onPress={() => { setSlot(pendingSlot, d.name); setPendingSlot(null); }} active={assign[pendingSlot] === d.name} tone="accent" small style={styles.quick} />
+                        ))}
+                        <BigButton label="Unassign" onPress={() => { setSlot(pendingSlot, null); setPendingSlot(null); }} tone="off" small style={styles.quick} />
+                      </View>
+                    </View>
+                  ) : null}
+                </>
+              ) : (
+                <SelectionChips devices={snapshot.devices} selected={snapshot.selected} onToggle={(name) => manager.toggleSelect(name)} />
+              )}
+              <Groups groups={groups} selected={snapshot.selected} onApply={(members) => manager.selectOnly(members)} onSave={(name) => saveGroup(name, snapshot.selected)} onDelete={deleteGroup} />
+            </SectionCard>
+
+            {/* Advanced setup lives with the map/selection tools */}
+            <SectionCard title="Advanced setup">
+              <BigButton label={showAdvanced ? 'Hide advanced' : 'LED type · pixel count'} onPress={() => setShowAdvanced((s) => !s)} active={showAdvanced} tone="accent" small />
+              {showAdvanced ? <AdvancedSetup targetLabel={targetLabel} onIcModel={(i) => manager.masterIcModel(i)} onPixels={(n) => manager.masterPixels(n)} /> : null}
+            </SectionCard>
+          </>
+        ) : mode === 'color' ? (
           <SectionCard title={`Color · ${targetLabel}`}>
             <ColorPicker key={selKey} color={color} onChange={(c) => { setColor(c); sendColor(c); }} onComplete={(c) => manager.masterColor(c)} />
             {brightnessSlider}
@@ -136,49 +180,6 @@ export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) =
             {snapshot.show ? <BigButton label="Stop show" onPress={() => manager.stopShow()} tone="off" active small style={styles.stopShow} /> : null}
           </SectionCard>
         )}
-
-        {/* Power */}
-        <SectionCard title={`Power · ${targetLabel}`}>
-          <View style={styles.rowGap}>
-            <BigButton label="ON" onPress={() => manager.masterPower(true)} tone="on" active={allOn} style={styles.flex} />
-            <BigButton label="OFF" onPress={() => manager.masterPower(false)} tone="off" style={styles.flex} />
-          </View>
-        </SectionCard>
-
-        {/* Controlling — who the controls target */}
-        <SectionCard title={`Controlling · ${targetLabel}`}>
-          <BigButton label="Select all strips" onPress={() => manager.selectAll()} active={allSelected} tone="accent" small style={styles.selectAll} />
-          <View style={styles.rowGap}>
-            <BigButton label="Map" onPress={() => setPickMode('map')} active={pickMode === 'map'} tone="accent" small style={styles.flex} />
-            <BigButton label="List" onPress={() => setPickMode('list')} active={pickMode === 'list'} tone="accent" small style={styles.flex} />
-          </View>
-          {pickMode === 'map' ? (
-            <>
-              <ShackMap devices={snapshot.devices} selected={snapshot.selected} assign={assign} assignMode={assignMode} pendingSlot={pendingSlot} show={snapshot.show} onSlotPress={onSlotPress} />
-              <BigButton label={assignMode ? 'Done assigning' : 'Assign lights to map'} onPress={() => { setAssignMode((a) => !a); setPendingSlot(null); }} active={assignMode} tone="accent" small style={styles.assignToggle} />
-              {assignMode && pendingSlot ? (
-                <View style={styles.assignBox}>
-                  <Text style={styles.assignTitle}>Assign “{pendingSlot}” to a light:</Text>
-                  <View style={styles.quickRow}>
-                    {snapshot.devices.map((d) => (
-                      <BigButton key={d.name} label={d.label || d.name} onPress={() => { setSlot(pendingSlot, d.name); setPendingSlot(null); }} active={assign[pendingSlot] === d.name} tone="accent" small style={styles.quick} />
-                    ))}
-                    <BigButton label="Unassign" onPress={() => { setSlot(pendingSlot, null); setPendingSlot(null); }} tone="off" small style={styles.quick} />
-                  </View>
-                </View>
-              ) : null}
-            </>
-          ) : (
-            <SelectionChips devices={snapshot.devices} selected={snapshot.selected} onToggle={(name) => manager.toggleSelect(name)} />
-          )}
-          <Groups groups={groups} selected={snapshot.selected} onApply={(members) => manager.selectOnly(members)} onSave={(name) => saveGroup(name, snapshot.selected)} onDelete={deleteGroup} />
-        </SectionCard>
-
-        {/* Advanced */}
-        <SectionCard title="Advanced setup">
-          <BigButton label={showAdvanced ? 'Hide advanced' : 'LED type · pixel count'} onPress={() => setShowAdvanced((s) => !s)} active={showAdvanced} tone="accent" small />
-          {showAdvanced ? <AdvancedSetup targetLabel={targetLabel} onIcModel={(i) => manager.masterIcModel(i)} onPixels={(n) => manager.masterPixels(n)} /> : null}
-        </SectionCard>
 
         {snapshot.lastWrite ? <Text style={styles.debug}>last command: {snapshot.lastWrite}</Text> : null}
       </ScrollView>

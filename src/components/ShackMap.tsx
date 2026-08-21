@@ -9,17 +9,19 @@ import { effectName } from '../effects';
 
 type Slot = { name: string; left: number; top: number; w: number; h: number; vertical?: boolean };
 
+// Even ~3% padding on all four sides. The side rails and the Balcony bottom-align
+// on the same line (78%); ShakAssist + Back Stairs sit just below at the bottom edge.
 const SLOTS: Slot[] = [
-  { name: 'Front Siding', left: 26, top: 2, w: 48, h: 8 },
-  { name: 'Front Skirt', left: 26, top: 11, w: 48, h: 8 },
-  { name: 'Left Siding', left: 3, top: 21, w: 8, h: 50, vertical: true },
-  { name: 'Left Skirt', left: 13, top: 21, w: 8, h: 50, vertical: true },
-  { name: 'Right Skirt', left: 79, top: 21, w: 8, h: 50, vertical: true },
-  { name: 'Right Siding', left: 89, top: 21, w: 8, h: 50, vertical: true },
-  { name: 'Balcony', left: 38, top: 57, w: 28, h: 11 },
-  // dropped below the rails so they never overlap the skirts
-  { name: 'ShakAssist', left: 8, top: 74, w: 28, h: 14 },
-  { name: 'Back Stairs', left: 38, top: 74, w: 28, h: 14 },
+  { name: 'Front Siding', left: 26, top: 3, w: 48, h: 8 },
+  { name: 'Front Skirt', left: 26, top: 12, w: 48, h: 8 },
+  { name: 'Left Siding', left: 3, top: 22, w: 8, h: 56, vertical: true },
+  { name: 'Left Skirt', left: 13, top: 22, w: 8, h: 56, vertical: true },
+  { name: 'Right Skirt', left: 79, top: 22, w: 8, h: 56, vertical: true },
+  { name: 'Right Siding', left: 89, top: 22, w: 8, h: 56, vertical: true },
+  { name: 'Balcony', left: 38, top: 67, w: 28, h: 11 },
+  // rear cluster: just below the rails/balcony, flush to the bottom padding
+  { name: 'ShakAssist', left: 8, top: 83, w: 28, h: 14 },
+  { name: 'Back Stairs', left: 38, top: 83, w: 28, h: 14 },
 ];
 
 const norm = (s: string) => s.toLowerCase().replace(/\s+/g, '');
