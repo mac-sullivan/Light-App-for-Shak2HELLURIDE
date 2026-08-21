@@ -30,7 +30,7 @@ export function EffectPad({
                 onPress={() => onApplyScene(s)}
                 style={({ pressed }) => [styles.cell, styles.sceneCell, { opacity: pressed ? 0.7 : 1 }]}
               >
-                <Text style={styles.cellName} numberOfLines={1}>
+                <Text style={styles.cellName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
                   ♥ {s.name}
                 </Text>
               </Pressable>
@@ -48,7 +48,7 @@ export function EffectPad({
             onPress={() => onPick(m)}
             style={({ pressed }) => [styles.cell, selected === m && styles.active, { opacity: pressed ? 0.7 : 1 }]}
           >
-            <Text style={styles.cellName} numberOfLines={1}>
+            <Text style={styles.cellName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
               {effectName(m)}
             </Text>
             <Text style={styles.cellNum}>#{m}</Text>
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
   hint: { color: theme.textDim, fontSize: size.fontSm, marginBottom: 12, opacity: 0.8 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   cell: {
-    width: '48%',
+    width: '31.5%',
     minHeight: 58,
     borderRadius: 12,
     backgroundColor: theme.surfaceHi,

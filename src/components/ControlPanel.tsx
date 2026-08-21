@@ -19,7 +19,7 @@ import { AdvancedSetup } from './AdvancedSetup';
 import type { DeviceEntry } from '../ble/types';
 
 const SHOWS: { id: string; label: string }[] = [
-  { id: 'spin', label: 'Spin 🌀' },
+  { id: 'spin', label: 'Spin' },
   { id: 'rainbow', label: 'Rainbow' },
   { id: 'sweep', label: 'Sweep' },
   { id: 'wave', label: 'Wave' },
@@ -29,16 +29,16 @@ const SHOWS: { id: string; label: string }[] = [
   { id: 'breathe', label: 'Breathe' },
   { id: 'fire', label: 'Fire' },
   { id: 'ember', label: 'Ember' },
-  { id: 'lava', label: 'Lava 🌋' },
-  { id: 'heartbeat', label: 'Heartbeat ❤️' },
-  { id: 'meteor', label: 'Meteor ☄️' },
+  { id: 'lava', label: 'Lava' },
+  { id: 'heartbeat', label: 'Heartbeat' },
+  { id: 'meteor', label: 'Meteor' },
   { id: 'twinkle', label: 'Twinkle' },
   { id: 'confetti', label: 'Confetti' },
   { id: 'alternate', label: 'Alternate' },
   { id: 'police', label: 'Police' },
   { id: 'strobe', label: 'Strobe' },
   { id: 'sunset', label: 'Sunset' },
-  { id: 'music', label: 'Music 🎵' },
+  { id: 'music', label: 'Music' },
 ];
 
 export type Mode = 'map' | 'color' | 'effects' | 'shows';
@@ -169,7 +169,7 @@ export function ControlPanel({ mode, onMode }: { mode: Mode; onMode: (m: Mode) =
             <Text style={styles.showHint}>Whole-car shows — they override color &amp; effect on every strip.</Text>
             <View style={styles.quickRow}>
               {SHOWS.map((s) => (
-                <BigButton key={s.id} label={s.label} onPress={() => (snapshot.show === s.id ? manager.stopShow() : manager.startShow(s.id))} active={snapshot.show === s.id} tone="accent" small style={styles.showBtn} />
+                <BigButton key={s.id} label={s.label} onPress={() => (snapshot.show === s.id ? manager.stopShow() : manager.startShow(s.id))} active={snapshot.show === s.id} tone="accent" small labelSize={size.fontSm} style={styles.showBtn} />
               ))}
             </View>
             <Text style={styles.sliderLabel}>Spin speed · {snapshot.showSpeed.toFixed(1)}s per lap</Text>

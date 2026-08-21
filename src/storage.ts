@@ -65,32 +65,15 @@ export interface Scene {
 }
 
 // A pre-made scene for testing: a warm orange/red fire animation on all strips.
-export const DEFAULT_SCENES: Scene[] = [
-  {
-    id: 'scene-hawty',
-    name: 'Hawty',
-    states: {},
-    uniform: {
-      power: true,
-      mode: 'effect',
-      color: { r: 255, g: 40, b: 0 }, // base warm ember for monochrome fire effects
-      effect: 40, // "Lava Flow" — a fire-family animation
-      brightness: 255,
-      speed: 200,
-      sequence: 2,
-      white: 0,
-      icModel: null,
-      pixels: null,
-    },
-  },
-];
+export const DEFAULT_SCENES: Scene[] = [];
 
 export async function loadScenes(): Promise<Scene[]> {
   try {
     const raw = await AsyncStorage.getItem(SCENES_KEY);
     if (raw === null) return [...DEFAULT_SCENES];
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed as Scene[];
+    // Drop the retired 'Hawty' demo preset if it was seeded on an earlier version.
+    if (Array.isArray(parsed)) return (parsed as Scene[]).filter((s) => s.id !== 'scene-hawty');
   } catch {
     // ignore
   }

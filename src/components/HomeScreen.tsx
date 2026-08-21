@@ -1,5 +1,5 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Easing, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 // Top pills ride to the very top on iOS (notch handled by the safe area); Android
 // keeps a small offset below its status bar.
@@ -21,6 +21,57 @@ const SECTIONS: [Mode, string][] = [
   ['effects', 'Effects'],
   ['shows', 'Shows'],
 ];
+
+type Heart = { id: number; x: number; sizePx: number; drift: number; rot: number; delay: number; duration: number; emoji: string; anim: Animated.Value };
+const HEART_EMOJI = ['❤️', '💛', '🧡', '💜', '💖', '💗'];
+
+// Full-screen shower of hearts raining down — fired when the quick-save heart is tapped.
+function HeartsBurst({ fireKey }: { fireKey: number }) {
+  const { width, height } = useWindowDimensions();
+  const [hearts, setHearts] = useState<Heart[]>([]);
+
+  useEffect(() => {
+    if (fireKey === 0) return;
+    const n = 18;
+    const items: Heart[] = Array.from({ length: n }).map((_, i) => ({
+      id: fireKey * 100 + i,
+      x: Math.random() * width,
+      sizePx: 20 + Math.random() * 28,
+      drift: (Math.random() * 2 - 1) * 70,
+      rot: (Math.random() * 2 - 1) * 45,
+      delay: Math.random() * 400,
+      duration: 1500 + Math.random() * 1300,
+      emoji: HEART_EMOJI[Math.floor(Math.random() * HEART_EMOJI.length)]!,
+      anim: new Animated.Value(0),
+    }));
+    setHearts(items);
+    Animated.parallel(
+      items.map((h) =>
+        Animated.timing(h.anim, { toValue: 1, duration: h.duration, delay: h.delay, easing: Easing.in(Easing.quad), useNativeDriver: true })
+      )
+    ).start(() => setHearts([]));
+  }, [fireKey, width]);
+
+  if (hearts.length === 0) return null;
+  return (
+    <View pointerEvents="none" style={styles.burst}>
+      {hearts.map((h) => {
+        const translateY = h.anim.interpolate({ inputRange: [0, 1], outputRange: [-60, height + 60] });
+        const translateX = h.anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, h.drift, 0] });
+        const rotate = h.anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', `${h.rot}deg`] });
+        const opacity = h.anim.interpolate({ inputRange: [0, 0.08, 0.85, 1], outputRange: [0, 1, 1, 0] });
+        return (
+          <Animated.Text
+            key={h.id}
+            style={{ position: 'absolute', left: h.x, fontSize: h.sizePx, transform: [{ translateY }, { translateX }, { rotate }], opacity }}
+          >
+            {h.emoji}
+          </Animated.Text>
+        );
+      })}
+    </View>
+  );
+}
 
 function SectionSwitcher({ current, onSelect }: { current: Mode | null; onSelect: (m: Mode) => void }) {
   return (
@@ -47,12 +98,14 @@ export function HomeScreen() {
   const [tab, setTab] = useState<Tab>('control');
   const [mode, setMode] = useState<Mode>('color');
   const [saved, setSaved] = useState(false);
+  const [fireKey, setFireKey] = useState(0);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const heartScale = useRef(new Animated.Value(1)).current;
 
   const quickSave = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     saveCurrent(`Look ${scenes.length + 1}`);
+    setFireKey((k) => k + 1);
     setSaved(true);
     heartScale.stopAnimation();
     heartScale.setValue(0.6);
@@ -154,6 +207,8 @@ export function HomeScreen() {
           </View>
         </View>
       </View>
+
+      <HeartsBurst fireKey={fireKey} />
     </View>
   );
 }
@@ -161,6 +216,7 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
   body: { flex: 1 },
+  burst: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50 },
   topLeft: { position: 'absolute', top: PILL_TOP, left: size.gap, zIndex: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
   heartIcon: { fontSize: 24, fontWeight: '900', marginTop: -2 },
   iconBtn: {

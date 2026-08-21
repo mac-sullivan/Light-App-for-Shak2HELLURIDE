@@ -11,10 +11,12 @@ type Props = {
   small?: boolean;
   style?: ViewStyle;
   disabled?: boolean;
+  /** Fixed font size — use when a row of buttons must all render at the same size. */
+  labelSize?: number;
 };
 
 // Large, high-contrast pressable. Everything the user taps is one of these.
-export function BigButton({ label, onPress, active, tone = 'default', small, style, disabled }: Props) {
+export function BigButton({ label, onPress, active, tone = 'default', small, style, disabled, labelSize }: Props) {
   const bg = active
     ? tone === 'on'
       ? theme.ok
@@ -46,7 +48,7 @@ export function BigButton({ label, onPress, active, tone = 'default', small, sty
           numberOfLines={1}
           adjustsFontSizeToFit
           minimumFontScale={0.7}
-          style={[styles.label, { color: fg, fontSize: small ? size.fontMd : size.fontLg }]}
+          style={[styles.label, { color: fg, fontSize: labelSize ?? (small ? size.fontMd : size.fontLg) }]}
         >
           {label}
         </Text>
